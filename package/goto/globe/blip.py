@@ -12,7 +12,7 @@ class Blip() :
 		self.lat, self.lon = lat, lon
 
 	def __repr__(self) :
-		return f'Blip({self.lat}, {self.lon}) / {self.to_vector}'
+		return f'Blip({self.lat}, {self.lon}) / {self.as_vector}'
 
 	@staticmethod
 	def from_vector(v) :
@@ -27,7 +27,8 @@ class Blip() :
 		
 		return Blip(lat, lon)
 
-	def to_vector(self) :
+	@property
+	def as_vector(self) :
 		theta =  (math.pi / 2) - math.radians( self.lat )
 		phi = math.radians( self.lon )
 

@@ -1,66 +1,85 @@
 #!/usr/bin/env python3
 
+import math
+import sympy
+
 import geometrik.threed as g3d
 
-import goto.globe.blip
+# import goto.globe.blip
 
 class LineTo() :
 
+	""" plus de blip ici !!! que des vecteurs unitaires !!! """
+
 	north = g3d.Vector(0.0, 0.0, 1.0, True)
 
-	def __init__(self, goto.globe.blip.Blip: blip_a, goto.globe.blip.Blip: blip_b) :
-		self.blip_a = blip_a # start blip
-		self.blip_b = blip_b # end blip
+	def __init__(self, a : g3d.Vector, b : g3d.Vector) :
 
-		a = blip_a.to_vector()
-		b = blip_b.to_vector()
+		self.La = a.normalized()
+		self.Lb = b.normalized()
 
 		# frame, local to A, oriented along AB
-		self.x = a
-		self.z = (a @ b).normalized() # z is perpendicular to the the trajectory disk
-		self.y = (self.z @ self.x).normalized() # y is perpendicular to z and x
+		self.Lx = self.La
+		self.Lz = (self.La @ self.Lb).normalized() # z is perpendicular to the the trajectory disk
+		self.Ly = (self.Lz @ self.Lx) # y is perpendicular to z and x
 
-		self.angle_ab = a.angle_to(b) # angle between a and b
+		self.angle_ab = a.angle_to(b) # angle/distance between a and b
+
+	@staticmethod
+	def new_symbolic(a, b) :
+		u = LineTo( g3d.Vector(0.0, 0.0, 1.0, True), g3d.Vector(1.0, 0.0, 0.0, True) )
+		
+		u.La = g3d.Vector( * sympy.symbols(f'{a}_x {a}_y {a}_z') )
+		u.Lb = g3d.Vector( * sympy.symbols(f'{a}_x {a}_y {a}_z') )
+
+		u.Lx = g3d.Vector( * sympy.symbols(f'{a}{b}^Lx_x {a}{b}^Lx_y {a}{b}^Lx_z') )
+		u.Ly = g3d.Vector( * sympy.symbols(f'{a}{b}^Ly_x {a}{b}^Ly_y {a}{b}^Ly_z') )
+		u.Lz = g3d.Vector( * sympy.symbols(f'{a}{b}^Lz_x {a}{b}^Lz_y {a}{b}^Lz_z') )
+
+		u.angle_ab = sympy.symbols(f'{a}{b}^d')
+
+		return u
 
 	def __len__(self) :
 		return self.angle_ab
 
-	def progress(self, float: t) :
-		v = (
-			self.x * math.cos(t * self.angle_ab) +
-			self.y * math.sin(t * self.angle_ab)
+	def intersection(self, other) :
+		return (self.Lz @ other.Lz).normalized()
+
+	def side_point(self, t, d, w) :
+		return self.progress(t) * math.cos( d ) + w * self.Lz * math.sin( d )
+
+	def progress(self, t : float) :
+		return (
+			self.Lx * math.cos(t * self.angle_ab) +
+			self.Ly * math.sin(t * self.angle_ab)
 		)
 
-		return Blip.from_vector(v)
-
-	def status(self, goto.globe.blip.Blip: blip_m) :
+	def status(self, m : g3d.Vector) :
 		""" blip_m is the real position of the aircraft, maybe not exactly on the the line
 		this function returns:
 			* p, the blip of the aircraft as projected orthogonally onto the line
 			* t, the relative position of p on the line ab (between 0.0 and 1.0)
 			* h, the true heading to follow at p in order to stay on the line
 			* q, the distance between m and p
-
 		"""
 
-		m = blip_m.to_vector
+		Lx, Ly, Lz = self.Lx, self.Ly, self.Lz
 
 		# frame, local to P, oriented along AB
-		pz = self.z
-		py = (pz @ m) # not normalized
-		px = (py @ pz) # the projection, not normalized
+		Pz = Lz
+		Py = (Pz @ m).normalized()
+		Px = (Py @ Pz) # the projection, not normalized
 
-		p = Blip.from_vector(px)
-
-		t = self.x.signed_angle_to(px, self.z) / self.angle_ab # the progress
+		t = Lx.signed_angle_to(Px, Lz) / self.angle_ab # the progress
 
 		# frame, local to P, oriented to the north
-		nx = px
-		ny = (nx @ self.north)
-		nz = (ny @ nx)
+		Nx = Px
+		Ny = (self.north @ Nx).normalized()
+		Nz = (Nx @ Ny)
 
-		h = math.degrees( nz.signed_angle_to(py, -1.0 * p) )
+		h = math.degrees( Py.signed_angle_to(Nz, Px) )
 
-		d = m.angle_to(p)
+		d = m.angle_to(Px)
 
-		return p, t, h, d
+		return Px, t, h, d
