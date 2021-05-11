@@ -55,7 +55,18 @@ class LineTo() :
 			self.Ly * math.sin(t * self.angle_ab)
 		)
 
-	def status(self, m : g3d.Vector) :
+	def projection(self, Mx: g3d.Vector) :
+		""" return Px, Py Pz where Px is the projection of Mx on the Line
+		"""
+
+		Pz = self.Lz
+		Py = (Pz @ Mx).normalized()
+		Px = (Py @ Pz) # the projection, not normalized
+
+		return Px, Py, Pz
+
+
+	def status(self, Mx : g3d.Vector) :
 		""" blip_m is the real position of the aircraft, maybe not exactly on the the line
 		this function returns:
 			* p, the blip of the aircraft as projected orthogonally onto the line
@@ -67,8 +78,9 @@ class LineTo() :
 		Lx, Ly, Lz = self.Lx, self.Ly, self.Lz
 
 		# frame, local to P, oriented along AB
+
 		Pz = Lz
-		Py = (Pz @ m).normalized()
+		Py = (Pz @ Mx).normalized()
 		Px = (Py @ Pz) # the projection, not normalized
 
 		t = Lx.signed_angle_to(Px, Lz) / self.angle_ab # the progress
@@ -83,3 +95,26 @@ class LineTo() :
 		d = m.angle_to(Px)
 
 		return Px, t, h, d
+
+
+class CorridorLineTo(LineTo) :
+
+	def __init__(self, a : g3d.Vector, b : g3d.Vector, a_width: float, b_width: float) :
+
+		self.La = a.normalized()
+		self.Lb = b.normalized()
+
+		# frame, local to A, oriented along AB
+		self.Lx = self.La
+		self.Lz = (self.La @ self.Lb).normalized() # z is perpendicular to the the trajectory disk
+		self.Ly = (self.Lz @ self.Lx) # y is perpendicular to z and x
+
+		self.angle_ab = a.angle_to(b) # angle/distance between a and b
+
+		self.a_width = a_width
+		self.b_width = b_width
+		
+	def side_point(self, t, w) :
+		t = max(0.0, min(1.0, t))
+		d = (self.b_width - self.a_width) * t + self.a_width
+		return self.progress(t) * math.cos(d) + w * self.Lz * math.sin(d)
