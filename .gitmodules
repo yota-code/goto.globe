@@ -1,0 +1,3 @@
+[submodule "ext/geometrik"]
+	path = ext/geometrik
+	url = https://github.com/yota-code/geometrik.git
