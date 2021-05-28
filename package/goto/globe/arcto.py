@@ -11,34 +11,113 @@ class ArcTo() :
 
 	""" plus de blip ici !!! que des vecteurs unitaires !!! """
 
-	north = g3d.Vector(0.0, 0.0, 1.0, True)
-
 	def __init__(self, A: g3d.Vector, B: g3d.Vector, radius: float) :
 
 		self.A = A.normalized()
 		self.B = B.normalized()
 
-		self.angle_ab = self.A.angle_to(self.B) # angle/distance between a and b			
+		print(f"A = {self.A}")
+		print(f"B = {self.B}")
 
-		self.radius = abs(radius)
+		self.angle_ab = self.A.angle_to(self.B) # angle/distance between A and B			
+
+		radius_mini = self.angle_ab / 2
+		self.radius = max(radius_mini, min(abs(radius), math.pi / 2))
+		if self.radius != radius :
+			print(f"radius was clamped to {self.radius}")
 		self.way = math.copysign(1.0, radius)
 
-		# if self.angle_ab > 2 * self.radius :
-		# 	self.radius = self.angle_ab / 2
-		# 	print(f"error: radius to small {radius}, changed to {self.radius}")
-		# else :
-		# 	print(f"smallest radius allowed: {self.angle_ab / 2}")
+		I = (self.A + self.B).normalized() # the point between A and B
+		Q = self.way * (self.B @ self.A).normalized()
 
-		self.P = (self.A + self.B).normalized()
-		self.Q = (self.A @ self.B).normalized() if self.way < 0.0 else (self.B @ self.A).normalized()
+		print(f"radius = {self.radius}")
+		print(f"I = {I}")
+		print(f"Q = {Q}")
 
-		k = (self.A + self.B).norm * math.cos(radius) / (1 + self.A * self.B)
-		if not -1.0 <= k <= 1.0 :
-			k = max(-1.0, min(k, 1.0))
-			t = 0.0
-			self.C = self.P
-			self.radius = self.C.angle_to(self.A)
-		else :
-			t = math.acos(k)
-			self.C = self.P * math.cos(t) + self.Q * math.sin(t)
+		t = math.acos(math.cos(self.radius) / (self.A * I))
+		self.C = I * math.cos(t) + Q * math.sin(t) # the center of the arc
 
+		print(f"t = {t}")
+		print(f"C = {self.C}")
+
+	def status(self, M: g3d.Vector) :
+
+		# frame local to C, oriented with Cz toward M
+		Cx = self.C
+		Cy = (M @ self.C).normalized()
+		Cz = Cx @ Cy
+
+		print(f"Cx = {Cx}")
+		print(f"Cy = {Cy}")
+		print(f"Cz = {Cz}")
+
+
+		# with g3d.UnitSpherePlot() as u :
+		#     u.add_point(Cx, 'Cx', 'r')
+		#     u.add_point(M, 'M', 'magenta')
+		#     u.add_point(Cy, 'Cy', 'g')
+		#     u.add_point(Cz, 'Cz', 'g')
+
+		# P is M projected on the arc
+		Px = Cx * math.cos(self.radius) + Cz * math.sin(self.radius)
+		Py = Cy
+		Pz = Px @ Py
+
+		print(f"Px = {Px}")
+
+
+		Ax = self.C
+		Ay = (self.A @ self.C).normalized()
+		Az = Ax @ Ay
+
+		Bx = self.C
+		By = (self.B @ self.C).normalized()
+		Bz = Bx @ By
+
+		# with g3d.UnitSpherePlot() as u :
+		# 	u.add_point(M, 'M', 'magenta')
+		# 	u.add_point(Px, 'P', 'cyan')
+
+		# 	u.add_point(Cx, 'Cx', 'r')
+		# 	u.add_point(Cy, 'Cy', 'r')
+		# 	u.add_point(Cz, 'Cz', 'r')
+
+		# 	u.add_point(Ax, 'Ax', 'g')
+		# 	u.add_point(Ay, 'Ay', 'g')
+		# 	u.add_point(Az, 'Az', 'g')
+
+		# 	u.add_point(Bx, 'Bx', 'b')
+		# 	u.add_point(By, 'By', 'b')
+		# 	u.add_point(Bz, 'Bz', 'b')
+
+		# 	u.add_circle_part(self.C, self.A, self.B)
+
+		t = Cz.signed_angle_to(Az, Cx) / Az.angle_to(Bz)
+
+		# frame, local to P, oriented to the north
+		Nx = Px
+		Ny, Nz = g3d.plane.Plane(Px).frame()
+
+		# with g3d.UnitSpherePlot() as u :
+		# 	u.add_point(M, 'M', 'magenta')
+		# 	u.add_point(Px, 'P', 'cyan')
+
+		# 	u.add_point(Cx, 'Cx', 'r')
+		# 	u.add_point(Cy, 'Cy', 'r')
+		# 	u.add_point(Cz, 'Cz', 'r')
+
+		# 	u.add_point(Px, 'Px', 'b')
+		# 	u.add_point(Py, 'Py', 'b')
+		# 	u.add_point(Pz, 'Pz', 'b')
+
+		# 	u.add_point(Nx, 'Nx', 'g')
+		# 	u.add_point(Ny, 'Ny', 'g')
+		# 	u.add_point(Nz, 'Nz', 'g')
+
+		# 	u.add_circle_part(self.C, self.A, self.B)
+
+
+		h = math.degrees( Py.signed_angle_to(Nz, Px) )
+		d = M.angle_to(Px)
+
+		return Px, t, h, d

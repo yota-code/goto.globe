@@ -97,7 +97,7 @@ class LineTo() :
 		return Px, t, h, d
 
 
-class CorridorLineTo(LineTo) :
+class LineCorridor(LineTo) :
 
 	def __init__(self, a : g3d.Vector, b : g3d.Vector, a_width: float, b_width: float) :
 
@@ -115,6 +115,50 @@ class CorridorLineTo(LineTo) :
 		self.b_width = b_width
 		
 	def side_point(self, t, w) :
+		
 		t = max(0.0, min(1.0, t))
 		d = (self.b_width - self.a_width) * t + self.a_width
 		return self.progress(t) * math.cos(d) + w * self.Lz * math.sin(d)
+
+	def make_joint(self, other) :
+		""" B->A et B->C """
+
+		A, B = self.Lb, self.La
+
+		q = self.Ly.signed_angle_to(other.Ly, B)
+		Q = (self.Ly + other.Ly).normalized()
+
+		w = math.copysign(1.0, q)
+
+		point_ba = self.side_point(0.0, w)
+		point_ab = self.side_point(1.0, w)
+		point_bc = other.side_point(1.0, -w)
+		point_cb = other.side_point(0.0, -w)
+
+		side_ab = LineTo(point_ab, point_ba)
+		side_bc = LineTo(point_bc, point_cb)
+
+		I = side_ab.intersection(side_bc)
+
+		P1 = I * Q
+		P2 = I * B
+		R1 = -(A * Q)**2 / (
+		    A.y**2*(-1+B.y**2) +
+		    2*A.x*A.z*B.x*B.z +
+		    2*A.y*B.y*(A.x*B.x+A.z*B.z) +
+		    A.z**2*(-1+B.z**2) -
+		    A.x**2*(B.y**2+B.z**2)
+		)
+
+		t = math.acos(math.sqrt( (P1**2 - R1)**2 / (
+		    P1**4 + P1**2*(1 + P2**2 - 2*R1) +
+		    R1*(-1 + P2**2 + R1) +
+		    2*math.sqrt(P1**2*P2**2*(P1**2 + (-1 + P2**2)*R1))
+		)))
+
+		V = B * math.cos(t) + Q * math.sin(t)
+
+		E, null, null = self.projection(V)
+		F, null, null = other.projection(V)
+
+		return E, F, V
