@@ -16,29 +16,29 @@ class ArcTo() :
 		self.A = A.normalized()
 		self.B = B.normalized()
 
-		print(f"A = {self.A}")
-		print(f"B = {self.B}")
+		# print(f"A = {self.A}")
+		# print(f"B = {self.B}")
 
 		self.angle_ab = self.A.angle_to(self.B) # angle/distance between A and B			
 
 		radius_mini = self.angle_ab / 2
-		self.radius = max(radius_mini, min(abs(radius), math.pi / 2))
+		self.way = math.copysign(1.0, radius)
+		self.radius = self.way * max(radius_mini, min(abs(radius), math.pi / 2))
 		if self.radius != radius :
 			print(f"radius was clamped to {self.radius}")
-		self.way = math.copysign(1.0, radius)
 
 		I = (self.A + self.B).normalized() # the point between A and B
 		Q = self.way * (self.B @ self.A).normalized()
 
-		print(f"radius = {self.radius}")
-		print(f"I = {I}")
-		print(f"Q = {Q}")
+		# print(f"radius = {self.radius}")
+		# print(f"I = {I}")
+		# print(f"Q = {Q}")
 
 		t = math.acos(math.cos(self.radius) / (self.A * I))
 		self.C = I * math.cos(t) + Q * math.sin(t) # the center of the arc
 
-		print(f"t = {t}")
-		print(f"C = {self.C}")
+		# print(f"t = {t}")
+		# print(f"C = {self.C}")
 
 	def status(self, M: g3d.Vector) :
 
@@ -47,9 +47,9 @@ class ArcTo() :
 		Cy = (M @ self.C).normalized()
 		Cz = Cx @ Cy
 
-		print(f"Cx = {Cx}")
-		print(f"Cy = {Cy}")
-		print(f"Cz = {Cz}")
+		# print(f"Cx = {Cx}")
+		# print(f"Cy = {Cy}")
+		# print(f"Cz = {Cz}")
 
 
 		# with g3d.UnitSpherePlot() as u :
@@ -59,12 +59,11 @@ class ArcTo() :
 		#     u.add_point(Cz, 'Cz', 'g')
 
 		# P is M projected on the arc
-		Px = Cx * math.cos(self.radius) + Cz * math.sin(self.radius)
-		Py = Cy
+		Px = Cx * math.cos(self.radius) + self.way * Cz * math.sin(self.radius)
+		Py = self.way * Cy
 		Pz = Px @ Py
 
-		print(f"Px = {Px}")
-
+		# print(f"Px = {Px}")
 
 		Ax = self.C
 		Ay = (self.A @ self.C).normalized()
@@ -92,7 +91,7 @@ class ArcTo() :
 
 		# 	u.add_circle_part(self.C, self.A, self.B)
 
-		t = Cz.signed_angle_to(Az, Cx) / Az.angle_to(Bz)
+		t = Cz.signed_angle_to(Az, self.way * Cx) / Az.angle_to(Bz)
 
 		# frame, local to P, oriented to the north
 		Nx = Px

@@ -77,11 +77,19 @@ class LineTo() :
 
 		Lx, Ly, Lz = self.Lx, self.Ly, self.Lz
 
+		print(f"Lx = {Lx}")
+		print(f"Ly = {Ly}")
+		print(f"Lz = {Lz}")
+
 		# frame, local to P, oriented along AB
 
 		Pz = Lz
 		Py = (Pz @ Mx).normalized()
 		Px = (Py @ Pz) # the projection, not normalized
+
+		print(f"Px = {Px}")
+		print(f"Py = {Py}")
+		print(f"Pz = {Pz}")
 
 		t = Lx.signed_angle_to(Px, Lz) / self.angle_ab # the progress
 
@@ -92,7 +100,7 @@ class LineTo() :
 
 		h = math.degrees( Py.signed_angle_to(Nz, Px) )
 
-		d = m.angle_to(Px)
+		d = Mx.angle_to(Px)
 
 		return Px, t, h, d
 
