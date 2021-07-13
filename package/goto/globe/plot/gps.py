@@ -58,8 +58,6 @@ class GlobePlotGps(GlobePlot__base__) :
 		})
 
 	def add_point(self, Ax, name, color=None) :
-		from goto.globe.blip import Blip
-
 		self.point_map[name] = Ax
 
 	def add_line(self, Ax, Bx) :

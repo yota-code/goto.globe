@@ -66,7 +66,7 @@ class GlobePlotMpl(GlobePlot__base__) :
 		rad_mini = angle_ab / 2.0
 
 		way = math.copysign(1.0, radius)
-		rad = way * max(radius_mini, min(abs(radius), math.pi / 2))
+		rad = way * max(rad_mini, min(abs(radius), math.pi / 2))
 
 		I = (A + B).normalized()
 		Q = way * (B @ A).normalized()
@@ -165,7 +165,7 @@ class GlobePlotMpl(GlobePlot__base__) :
 		rad_mini = angle_ab / 2.0
 
 		way = math.copysign(1.0, radius)
-		rad = way * max(radius_mini, min(abs(radius), math.pi / 2))
+		rad = way * max(rad_mini, min(abs(radius), math.pi / 2))
 
 		I = (A + B).normalized()
 		Q = way * (B @ A).normalized()

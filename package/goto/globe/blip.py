@@ -16,6 +16,7 @@ class Blip() :
 
 	@staticmethod
 	def from_vector(v) :
+
 		if not v._is_unit :
 			v = v.normalized()
 			
@@ -29,6 +30,7 @@ class Blip() :
 
 	@property
 	def as_vector(self) :
+
 		theta =  (math.pi / 2) - math.radians( self.lat )
 		phi = math.radians( self.lon )
 
@@ -45,3 +47,19 @@ class Blip() :
 		assert( math.isclose(v.norm, 1.0) )
 
 		return v
+
+	def p_mercator(self) :
+		x = self.lon
+		y = math.tan(self.lat)
+
+	def p_gnomic(self, zero, pos) :
+
+		n = g3d.v_north
+		z = Blip(lat_zero, lon_zero).as_vector
+		x = (n @ z).normalized()
+		y = (z @ x)
+
+		d = 0
+
+
+

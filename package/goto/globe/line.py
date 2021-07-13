@@ -21,9 +21,9 @@ class LineTo() :
 		# frame, local to A, oriented along AB
 		self.Lx = self.La
 		self.Lz = (self.La @ self.Lb).normalized() # z is perpendicular to the the trajectory disk
-		self.Ly = (self.Lz @ self.Lx) # y is perpendicular to z and x
+		self.Ly = (self.Lz @ self.Lx) # y is perpendicular to z and x, along the line
 
-		self.angle_ab = a.angle_to(b) # angle/distance between a and b
+		self.length = a.angle_to(b) # angle/distance between a and b
 
 	@staticmethod
 	def new_symbolic(a, b) :
@@ -36,12 +36,9 @@ class LineTo() :
 		u.Ly = g3d.Vector( * sympy.symbols(f'{a}{b}^Ly_x {a}{b}^Ly_y {a}{b}^Ly_z') )
 		u.Lz = g3d.Vector( * sympy.symbols(f'{a}{b}^Lz_x {a}{b}^Lz_y {a}{b}^Lz_z') )
 
-		u.angle_ab = sympy.symbols(f'{a}{b}^d')
+		u.length = sympy.symbols(f'{a}{b}^d')
 
 		return u
-
-	def __len__(self) :
-		return self.angle_ab
 
 	def intersection(self, other) :
 		return (self.Lz @ other.Lz).normalized()
@@ -51,9 +48,19 @@ class LineTo() :
 
 	def progress(self, t : float) :
 		return (
-			self.Lx * math.cos(t * self.angle_ab) +
-			self.Ly * math.sin(t * self.angle_ab)
+			self.Lx * math.cos(t * self.length) +
+			self.Ly * math.sin(t * self.length)
 		)
+
+	def projected_frame(self, Mx: g3d.Vector) :
+		""" return Px, Py Pz where Px is the projection of Mx on the Line
+		"""
+
+		Pz = self.Lz
+		Py = (Pz @ Mx).normalized()
+		Px = (Py @ Pz) # the projection
+
+		return Px, Py, Pz
 
 	def projection(self, Mx: g3d.Vector) :
 		""" return Px, Py Pz where Px is the projection of Mx on the Line
@@ -61,10 +68,14 @@ class LineTo() :
 
 		Pz = self.Lz
 		Py = (Pz @ Mx).normalized()
-		Px = (Py @ Pz) # the projection, not normalized
+		Px = (Py @ Pz) # the projection
 
-		return Px, Py, Pz
+		return Px
 
+	def surface_angle(self, other) :
+		""" from one line to another, what is the angle """
+		assert(self.Lb == other.La)
+		return - self.Ly.signed_angle_to(other.Ly, self.Lb)
 
 	def status(self, Mx : g3d.Vector) :
 		""" blip_m is the real position of the aircraft, maybe not exactly on the the line
@@ -91,7 +102,7 @@ class LineTo() :
 		print(f"Py = {Py}")
 		print(f"Pz = {Pz}")
 
-		t = Lx.signed_angle_to(Px, Lz) / self.angle_ab # the progress
+		t = Lx.signed_angle_to(Px, Lz) / self.length # the progress
 
 		# frame, local to P, oriented to the north
 		Nx = Px
@@ -103,7 +114,6 @@ class LineTo() :
 		d = Mx.angle_to(Px)
 
 		return Px, t, h, d
-
 
 class LineCorridor(LineTo) :
 
@@ -117,31 +127,32 @@ class LineCorridor(LineTo) :
 		self.Lz = (self.La @ self.Lb).normalized() # z is perpendicular to the the trajectory disk
 		self.Ly = (self.Lz @ self.Lx) # y is perpendicular to z and x
 
-		self.angle_ab = a.angle_to(b) # angle/distance between a and b
+		self.length = a.angle_to(b) # angle/distance between a and b
 
 		self.a_width = a_width
 		self.b_width = b_width
 		
 	def side_point(self, t, w) :
-		
 		t = max(0.0, min(1.0, t))
 		d = (self.b_width - self.a_width) * t + self.a_width
 		return self.progress(t) * math.cos(d) + w * self.Lz * math.sin(d)
 
 	def make_joint(self, other) :
-		""" B->A et B->C """
+		""" for 3 points A, B, C in this order, self and other should two consecutive corridors A->B et B->C """
 
-		A, B = self.Lb, self.La
+		assert(self.Lb == other.La)
+
+		A, B, C = self.La, self.Lb, other.Lb
 
 		q = self.Ly.signed_angle_to(other.Ly, B)
-		Q = (self.Ly + other.Ly).normalized()
-
 		w = math.copysign(1.0, q)
 
-		point_ba = self.side_point(0.0, w)
-		point_ab = self.side_point(1.0, w)
-		point_bc = other.side_point(1.0, -w)
-		point_cb = other.side_point(0.0, -w)
+		Q = - w * (self.Lz + other.Lz).normalized()
+
+		point_ab = self.side_point(0.0, w)
+		point_ba = self.side_point(1.0, w)
+		point_bc = other.side_point(0.0, -w)
+		point_cb = other.side_point(1.0, -w)
 
 		side_ab = LineTo(point_ab, point_ba)
 		side_bc = LineTo(point_bc, point_cb)
@@ -150,7 +161,7 @@ class LineCorridor(LineTo) :
 
 		P1 = I * Q
 		P2 = I * B
-		R1 = -(A * Q)**2 / (
+		R = -(A * Q)**2 / (
 		    A.y**2*(-1+B.y**2) +
 		    2*A.x*A.z*B.x*B.z +
 		    2*A.y*B.y*(A.x*B.x+A.z*B.z) +
@@ -158,15 +169,23 @@ class LineCorridor(LineTo) :
 		    A.x**2*(B.y**2+B.z**2)
 		)
 
-		t = math.acos(math.sqrt( (P1**2 - R1)**2 / (
-		    P1**4 + P1**2*(1 + P2**2 - 2*R1) +
-		    R1*(-1 + P2**2 + R1) +
-		    2*math.sqrt(P1**2*P2**2*(P1**2 + (-1 + P2**2)*R1))
+		t = math.acos(math.sqrt( (P1**2 - R)**2 / (
+		    P1**4 + P1**2*(1 + P2**2 - 2*R) +
+		    R*(-1 + P2**2 + R) +
+		    2*math.sqrt(P1**2*P2**2*(P1**2 + (-1 + P2**2)*R))
 		)))
 
-		V = B * math.cos(t) + Q * math.sin(t)
+		V = B*math.cos(t) + Q*math.sin(t)
 
-		E, null, null = self.projection(V)
-		F, null, null = other.projection(V)
+		E = self.projection(V)
+		F = other.projection(V)
 
-		return E, F, V
+		VEa = E.angle_to(V)
+		VFa = F.angle_to(V)
+
+		assert( math.isclose(VEa, VFa, rel_tol=1e-4) )
+
+		AEp = A.angle_to(E) / self.length
+		BFp = B.angle_to(F) / other.length
+
+		return E, F, V, w*VEa, AEp, BFp

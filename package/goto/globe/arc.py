@@ -30,27 +30,28 @@ class ArcTo() :
 		I = (self.A + self.B).normalized() # the point between A and B
 		Q = self.way * (self.B @ self.A).normalized()
 
-		# print(f"radius = {self.radius}")
+		print(f"radius = {self.radius}")
 		# print(f"I = {I}")
 		# print(f"Q = {Q}")
 
 		t = math.acos(math.cos(self.radius) / (self.A * I))
 		self.C = I * math.cos(t) + Q * math.sin(t) # the center of the arc
 
-		# print(f"t = {t}")
-		# print(f"C = {self.C}")
+		print(f"t = {t}")
+		print(f"C = {self.C}")
 
 	def status(self, M: g3d.Vector) :
 
 		# frame local to C, oriented with Cz toward M
 		Cx = self.C
-		Cy = (M @ self.C).normalized()
+		Cy = (M @ Cx).normalized()
 		Cz = Cx @ Cy
 
-		# print(f"Cx = {Cx}")
-		# print(f"Cy = {Cy}")
-		# print(f"Cz = {Cz}")
-
+		print(f"Cx = {Cx}")
+		print(f"Cy = {Cy}")
+		print(f"M @ Cx = {M @ Cx}")
+		print(f"Cz = {Cz}")
+		print(f"radius = {self.radius}")
 
 		# with g3d.UnitSpherePlot() as u :
 		#     u.add_point(Cx, 'Cx', 'r')
@@ -115,8 +116,11 @@ class ArcTo() :
 
 		# 	u.add_circle_part(self.C, self.A, self.B)
 
-
 		h = math.degrees( Py.signed_angle_to(Nz, Px) )
 		d = M.angle_to(Px)
+
+		print(f"M = {M}")
+		print(f"Px = {Px}")
+		print(f"d = {d}")
 
 		return Px, t, h, d
