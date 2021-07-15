@@ -11,6 +11,13 @@ from goto.globe.arc import ArcTo
 
 from goto.globe.plot import GlobePlotGps
 
+
+"""
+skeleton: first version of the route, contains GOTO instructions, as well as 3 and 4 points turns. It can be seen as control points of the trajectory
+centerline: second version of the route, contains only lines and arcs. It shapes the corridor itself
+effective: the last version of the route, with added JOINT, used to compute maximal admissible speeds
+"""
+
 earth_radius = 6371008.7714
 # openstreetmap earth radius = 6378137.0
 
@@ -20,20 +27,23 @@ def interpolate(x, a, b) :
 class RouteCut() :
 	def __init__(self) :
 		# load
-		self.route_0 = Path("route_0.json").load()
-		self.plot(self.route_0, Path("route_0.plot.json"))
+		self.r_skeleton = Path("0_skeleton.json").load()
+		self.plot(self.r_skeleton, Path("0_skeleton.plot.json"))
 
 		# apply first pass
-		self.route_1 = self.pass_1(self.route_0)
-		Path("route_1.json").save(self.route_1)
-		self.plot(self.route_1, Path("route_1.plot.json"))
+		self.r_centerline = self.pass_1(self.r_skeleton)
+		Path("1_centerline.json").save(self.r_centerline)
+		self.plot(self.r_centerline, Path("1_centerline.plot.json"))
 
-		self.route_2 = self.pass_2(self.route_1)
-		Path("route_2.json").save(self.route_1)
-		self.plot(self.route_2, Path("route_2.plot.json"))
+		self.r_effective = self.pass_2(self.r_centerline)
+		Path("2_effective.json").save(self.r_centerline)
+		self.plot(self.r_effective, Path("2_effective.plot.json"))
 
-	def plot(self, r_lst, route_pth) :
+		self.plot_corridor( Path("3_corridor.plot.json") )
+
+	def plot_corridor(self, route_pth) :
 		p_prev = None
+		r_lst = self.r_centerline
 		with GlobePlotGps(route_pth) as plt :
 			for i, line in enumerate(r_lst) :
 				verb, lat, lon, radius, alt, spd, width = line
@@ -42,15 +52,33 @@ class RouteCut() :
 				if p_prev != None :
 					if radius == 0.0 :
 						line_AB = LineCorridor(p_prev, p_curr, r_lst[i-1][6] / earth_radius, width / earth_radius)
-						p_lst = [
-							line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1),
-							line_AB.side_point(1.0, 1), line_AB.side_point(0.0, 1),
-						]
 						plt.add_line(line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1))
 						plt.add_line(line_AB.side_point(0.0, 1), line_AB.side_point(1.0, 1))
-					if radius == 0.0 or verb != "GOTO" :
+					else :
+						plt.add_arc(p_prev, p_curr, radius / earth_radius)
+
+				plt.add_point(p_curr, f"{i}.{verb}")
+				p_prev = p_curr
+
+	def plot(self, r_lst, route_pth) :
+		p_prev = None
+		with GlobePlotGps(route_pth) as plt :
+			for i, line in enumerate(r_lst) :
+				verb, lat, lon, radius, alt, spd, width = line
+				p_curr = Blip(lat, lon).as_vector
+				# plt.add_circle(p_curr, width / earth_radius)
+				if p_prev != None :
+					# if radius == 0.0 :
+					# 	line_AB = LineCorridor(p_prev, p_curr, r_lst[i-1][6] / earth_radius, width / earth_radius)
+					# 	p_lst = [
+					# 		line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1),
+					# 		line_AB.side_point(1.0, 1), line_AB.side_point(0.0, 1),
+					# 	]
+					# 	plt.add_line(line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1))
+					# 	plt.add_line(line_AB.side_point(0.0, 1), line_AB.side_point(1.0, 1))
+					if radius == 0.0 :
 						plt.add_line(p_prev, p_curr)
-					# # plt.add_polygon(p_lst)
+					# plt.add_polygon(p_lst)
 					else :
 						plt.add_arc(p_prev, p_curr, radius / earth_radius)
 
@@ -104,8 +132,8 @@ class RouteCut() :
 				B = Blip(lat, lon).as_vector
 				C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
 				E, F, VEa, AEp = self.joint(A, B, C, r_prev[i-1][6], r_prev[i][6], r_prev[i+1][6], 400.0)
-				r_next.append(["JOINT", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
-				r_next.append(["GOTO", F.lat, F.lon, VEa * earth_radius, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+				r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+				r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
 			else :
 				r_next.append(line)
 		return r_next
@@ -119,7 +147,7 @@ class RouteCut() :
 
 		w = math.copysign(1.0, q)
 
-		R1 = -(A * Q)**2 / (
+		R1 = - (A * Q)**2 / (
 		    A.y**2*(-1+B.y**2) +
 		    2*A.x*A.z*B.x*B.z +
 		    2*A.y*B.y*(A.x*B.x+A.z*B.z) +
@@ -197,10 +225,6 @@ class RouteCut() :
 		E, F, V, VEa, AEp, BFp = line_AB.make_joint(line_BC)
 
 		return Blip.from_vector(E), Blip.from_vector(F), VEa, AEp
-
-
-
-
 
 if __name__ == "__main__" :
 	u = RouteCut()
