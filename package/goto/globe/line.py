@@ -3,6 +3,8 @@
 import math
 import sympy
 
+from cc_pathlib import Path
+
 import geometrik.threed as g3d
 
 # import goto.globe.blip
@@ -75,7 +77,7 @@ class LineTo() :
 	def surface_angle(self, other) :
 		""" from one line to another, what is the angle """
 		assert(self.Lb == other.La)
-		return - self.Ly.signed_angle_to(other.Ly, self.Lb)
+		return - self.Ly.angle_to(other.Ly, self.Lb)
 
 	def status(self, Mx : g3d.Vector) :
 		""" blip_m is the real position of the aircraft, maybe not exactly on the the line
@@ -102,14 +104,14 @@ class LineTo() :
 		print(f"Py = {Py}")
 		print(f"Pz = {Pz}")
 
-		t = Lx.signed_angle_to(Px, Lz) / self.length # the progress
+		t = Lx.angle_to(Px, Lz) / self.length # the progress
 
 		# frame, local to P, oriented to the north
 		Nx = Px
 		Ny = (self.north @ Nx).normalized()
 		Nz = (Nx @ Ny)
 
-		h = math.degrees( Py.signed_angle_to(Nz, Px) )
+		h = math.degrees( Py.angle_to(Nz, Px) )
 
 		d = Mx.angle_to(Px)
 
@@ -139,25 +141,26 @@ class LineCorridor(LineTo) :
 
 	def make_joint(self, other) :
 		""" for 3 points A, B, C in this order, self and other should two consecutive corridors A->B et B->C """
+		from goto.globe.plot import GlobePlotMpl, GlobePlotGps
 
 		assert(self.Lb == other.La)
 
 		A, B, C = self.La, self.Lb, other.Lb
 
-		q = self.Ly.signed_angle_to(other.Ly, B)
+		q = other.Ly.angle_to(self.Ly, B)
 		w = math.copysign(1.0, q)
 
-		Q = - w * (self.Lz + other.Lz).normalized()
+		Q = -w * (self.Lz + other.Lz).normalized()
 
-		point_ab = self.side_point(0.0, w)
-		point_ba = self.side_point(1.0, w)
+		point_ab = self.side_point(0.0, -w)
+		point_ba = self.side_point(1.0, -w)
 		point_bc = other.side_point(0.0, -w)
 		point_cb = other.side_point(1.0, -w)
 
 		side_ab = LineTo(point_ab, point_ba)
 		side_bc = LineTo(point_bc, point_cb)
 
-		I = side_ab.intersection(side_bc)
+		I = -w * side_ab.intersection(side_bc)
 
 		P1 = I * Q
 		P2 = I * B
@@ -177,6 +180,21 @@ class LineCorridor(LineTo) :
 
 		V = B*math.cos(t) + Q*math.sin(t)
 
+		with GlobePlotGps(Path("tmp.plot.json")) as plt :
+			plt.add_point(A, 'A')
+			plt.add_point(B, 'B')
+			plt.add_point(C, 'C')
+			# plt.add_point(point_ab, 'Pab')
+			plt.add_line(point_ab, point_ba)
+			plt.add_line(point_bc, point_cb)
+			# plt.add_point(Q, 'Q', 'g')
+			# plt.add_point(self.Ly, 'Sy', 'r')
+			# plt.add_point(other.Ly, 'Oy', 'r')
+			# plt.add_line(point_ab, point_ba)
+			# plt.add_line(point_bc, point_cb)
+			plt.add_point(I, 'I')
+			plt.add_point(V, 'V', 'magenta')
+
 		E = self.projection(V)
 		F = other.projection(V)
 
@@ -189,3 +207,25 @@ class LineCorridor(LineTo) :
 		BFp = B.angle_to(F) / other.length
 
 		return E, F, V, w*VEa, AEp, BFp
+
+
+if __name__ == '__main__' :
+	from goto.globe.blip import Blip
+
+	A = Blip(-30.0, 0.0).as_vector
+	B = Blip(0.0, 0.0).as_vector
+	R = Blip(0.0, 30.0).as_vector
+	L = Blip(0.0, -30.0).as_vector
+
+	line_AB = LineCorridor(A, B, 0.05, 0.05)
+	line_BR = LineCorridor(B, R, 0.05, 0.05)
+
+	# print(
+	# 	line_AB.make_joint(line_BR)
+	# )
+
+	line_BL = LineCorridor(B, L, 0.05, 0.05)
+
+	print(
+		line_AB.make_joint(line_BL)
+	)

@@ -66,5 +66,5 @@ class GlobePlotGps(GlobePlot__base__) :
 	def add_arc(self, Ax, Bx, radius=0.0) :
 		self.line_lst.append( GlobePlot__base__.add_arc(self, Ax, Bx, radius) )
 
-	def add_circle(self, Ax, Bx, m) :
-		pass
+	def add_circle(self, Cx, Px) :
+		self.line_lst.append( GlobePlot__base__.add_circle(self, Cx, Px) )

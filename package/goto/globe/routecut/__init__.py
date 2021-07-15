@@ -21,28 +21,48 @@ class RouteCut() :
 	def __init__(self) :
 		# load
 		self.route_0 = Path("route_0.json").load()
-		self.plot_centerline(self.route_0, Path("route_0.plot.json"))
+		self.plot(self.route_0, Path("route_0.plot.json"))
 
 		# apply first pass
 		self.route_1 = self.pass_1(self.route_0)
 		Path("route_1.json").save(self.route_1)
-		self.plot_centerline(self.route_1, Path("route_1.plot.json"))
+		self.plot(self.route_1, Path("route_1.plot.json"))
 
-	def plot_centerline(self, route_lst, route_pth) :
+		self.route_2 = self.pass_2(self.route_1)
+		Path("route_2.json").save(self.route_1)
+		self.plot(self.route_2, Path("route_2.plot.json"))
+
+	def plot(self, r_lst, route_pth) :
 		p_prev = None
 		with GlobePlotGps(route_pth) as plt :
-			for i, line in enumerate(route_lst) :
-				verb, lat, lon, radius, alt, width = line
+			for i, line in enumerate(r_lst) :
+				verb, lat, lon, radius, alt, spd, width = line
 				p_curr = Blip(lat, lon).as_vector
+				plt.add_circle(p_curr, width / earth_radius)
 				if p_prev != None :
+					if radius == 0.0 :
+						line_AB = LineCorridor(p_prev, p_curr, r_lst[i-1][6] / earth_radius, width / earth_radius)
+						p_lst = [
+							line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1),
+							line_AB.side_point(1.0, 1), line_AB.side_point(0.0, 1),
+						]
+						plt.add_line(line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1))
+						plt.add_line(line_AB.side_point(0.0, 1), line_AB.side_point(1.0, 1))
 					if radius == 0.0 or verb != "GOTO" :
 						plt.add_line(p_prev, p_curr)
+					# # plt.add_polygon(p_lst)
 					else :
 						plt.add_arc(p_prev, p_curr, radius / earth_radius)
 
 				plt.add_point(p_curr, f"{i}.{verb}")
-
-				p_prev = p_curr		
+				# print(i, p_prev, type(p_prev))
+				# print(i, p_curr, type(p_curr))
+				# try :
+				p_prev = p_curr
+				# except :
+				# 	pass
+				# print(i, p_prev, type(p_prev))
+				# print(i, p_curr, type(p_curr))
 
 	def pass_1(self, r_prev) :
 		r_next = list()
@@ -78,18 +98,23 @@ class RouteCut() :
 		r_next = list()
 		a_lst = [ line[4] for line in r_prev ]
 		for i, line in enumerate(r_prev) :
-			verb, lat, lon, radius, alt, width = line
-			if verb == 'GOTO' and radius == 0.0 and line[i-1][0] == 'GOTO' and line[i-1][3] == 0.0 :
+			verb, lat, lon, radius, alt, spd, width = line
+			if verb == 'GOTO' and radius == 0.0 and r_prev[i+1][0] == 'GOTO' and r_prev[i+1][3] == 0.0 :
 				A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
 				B = Blip(lat, lon).as_vector
 				C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
-				r = radius / earth_radius
+				E, F, VEa, AEp = self.joint(A, B, C, r_prev[i-1][6], r_prev[i][6], r_prev[i+1][6], 400.0)
+				r_next.append(["JOINT", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+				r_next.append(["GOTO", F.lat, F.lon, VEa * earth_radius, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+			else :
+				r_next.append(line)
+		return r_next
 
 	def turn_3pt(self, A, B, C, d) :
 		line_AB = LineTo(A, B)
 		line_BC = LineTo(B, C)
 
-		q = line_AB.Ly.signed_angle_to(line_BC.Ly, B)
+		q = line_AB.Ly.angle_to(line_BC.Ly, B)
 		Q = (line_AB.Ly + line_BC.Ly).normalized()
 
 		w = math.copysign(1.0, q)
@@ -165,10 +190,13 @@ class RouteCut() :
 		return Blip.from_vector(E), Blip.from_vector(F), Blip.from_vector(G), w1 * VFa, AEp, BFp, CGp
 
 	def joint(self, A, B, C, wa, wb, wc, radius_max) :
-		line_AB = LineCorridor(B, A, wb, wa)
-		line_BC = LineCorridor(B, C, wb, wc)
+
+		line_AB = LineCorridor(A, B, wa / earth_radius, wb / earth_radius)
+		line_BC = LineCorridor(B, C, wb / earth_radius, wc / earth_radius)
 
 		E, F, V, VEa, AEp, BFp = line_AB.make_joint(line_BC)
+
+		return Blip.from_vector(E), Blip.from_vector(F), VEa, AEp
 
 
 

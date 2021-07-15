@@ -9,7 +9,14 @@ import geometrik.threed as g3d
 
 class GlobePlot__base__() :
 
-	def add_circle(self, Cx, Px) :
+	def add_circle(self, Cx, radius) :
+
+		if isinstance(radius, float) :
+			Py, Pz = g3d.Plane.frame_optimal(Cx)
+			Px = g3d.Vector.compose(Cx, Py, radius)
+		else :
+			Px = radius
+		
 		Cz = (Cx @ Px).normalized()
 		Cy = Cz @ Cx
 
@@ -19,7 +26,7 @@ class GlobePlot__base__() :
 		for t in np.linspace(0.0, math.tau, 128) :
 			q = (Cy * math.cos(t) + Cz * math.sin(t))
 			r = (Cx * math.cos(d) + q * math.sin(d))
-			p_lst.append([r.x, r.y, r.z])
+			p_lst.append(r)
 
 		return p_lst
 
@@ -45,7 +52,7 @@ class GlobePlot__base__() :
 		Bz = (Cx @ Bx).normalized()
 		By = Bz @ Cx
 
-		z = By.signed_angle_to(Ay, Cx)
+		z = By.angle_to(Ay, Cx)
 
 		d1 = Cx.angle_to(Ax)
 		d2 = Cx.angle_to(Bx)

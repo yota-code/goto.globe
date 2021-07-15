@@ -17,6 +17,8 @@ class Blip() :
 	@staticmethod
 	def from_vector(v) :
 
+		print(v, type(v))
+
 		if not v._is_unit :
 			v = v.normalized()
 			
