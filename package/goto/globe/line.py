@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+from os import P_WAIT
 import sympy
 
 from cc_pathlib import Path
@@ -48,11 +49,18 @@ class LineTo() :
 	def side_point(self, t, d, w) :
 		return self.progress(t) * math.cos( d ) + w * self.Lz * math.sin( d )
 
-	def progress(self, t : float) :
+	def progress(self, t: float) :
+		t = max(0.0, min(t, 1.0)) # t is bounded
 		return (
 			self.Lx * math.cos(t * self.length) +
 			self.Ly * math.sin(t * self.length)
 		)
+
+	def progress_frame(self, t: float) :
+		Px = self.progress(t)
+		Pz = self.Lz
+		Py = Pz @ Px
+		return Px, Py, Pz
 
 	def projected_frame(self, Mx: g3d.Vector) :
 		""" return Px, Py Pz where Px is the projection of Mx on the Line
@@ -108,7 +116,7 @@ class LineTo() :
 
 		# frame, local to P, oriented to the north
 		Nx = Px
-		Ny = (self.north @ Nx).normalized()
+		Ny = (g3d.v_north @ Nx).normalized()
 		Nz = (Nx @ Ny)
 
 		h = math.degrees( Py.angle_to(Nz, Px) )

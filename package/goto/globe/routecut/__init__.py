@@ -78,7 +78,6 @@ class RouteCut() :
 					# 	plt.add_line(line_AB.side_point(0.0, 1), line_AB.side_point(1.0, 1))
 					if radius == 0.0 :
 						plt.add_line(p_prev, p_curr)
-					# plt.add_polygon(p_lst)
 					else :
 						plt.add_arc(p_prev, p_curr, radius / earth_radius)
 
