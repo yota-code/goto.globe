@@ -18,6 +18,7 @@ class GlobePlotGps(GlobePlot__base__) :
 
 		self.line_lst = list()
 		self.point_map = dict()
+		self.polygon_lst = list()
 
 	def __enter__(self) :
 		return self
@@ -50,7 +51,22 @@ class GlobePlotGps(GlobePlot__base__) :
 					"type": "LineString",
 					"coordinates": p_lst
 				},
+			})
+
+		polygon_lst = list()
+		for line in self.polygon_lst :
+			p_lst = list()
+			for p in line :
+				u = Blip.from_vector(p)
+				p_lst.append([u.lon, u.lat])
+			polygon_lst.append({
+				"type": "Feature",
+				"geometry": {
+					"type": "Polygon",
+					"coordinates": [p_lst,]
+				},
 			})	
+
 
 		self.pth.save({
 			"type": "FeatureCollection",
@@ -68,3 +84,9 @@ class GlobePlotGps(GlobePlot__base__) :
 
 	def add_circle(self, Cx, Px) :
 		self.line_lst.append( GlobePlot__base__.add_circle(self, Cx, Px) )
+
+	def add_segment(self, u) :
+		self.line_lst.append( GlobePlot__base__.add_segment(self, u) )
+
+	def add_border(self, u) :
+		self.line_lst.append( GlobePlot__base__.add_border(self, u) )

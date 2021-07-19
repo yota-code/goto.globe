@@ -3,13 +3,13 @@
 import functools
 import math
 import sympy
+import typing
 
 import geometrik.threed as g3d
 
-# import goto.globe.blip
 
-class ArcTo() :
-	def __init__(self, A: g3d.Vector, B: g3d.Vector, point_or_radius: [float, g3d.Vector]) :
+class ArcSegment() :
+	def __init__(self, A: g3d.Vector, B: g3d.Vector, point_or_radius: typing.Union[float, g3d.Vector]) :
 
 		self.A = A.normalized()
 		self.B = B.normalized()
@@ -21,29 +21,34 @@ class ArcTo() :
 		elif isinstance(point_or_radius, g3d.Vector) :
 			self.__init__from_point(point_or_radius)
 
-		Az = (self.V @ self.A).normalized()
-		Bz = (self.V @ self.B).normalized()
+		Az = (self.Vx @ self.A).normalized()
+		Bz = (self.Vx @ self.B).normalized()
 
-		self.length = Az.angle_to(Bz) * math.sin(self.radius)
+		self.sector_ab = Az.angle_to(Bz) # angle covered by the arc
+		self.length = self.sector_ab * math.sin(self.radius) # geodesic distance
+
+		# compute the initial frame, direct only for right turns
+		self.Vy = - self.way * Az
+		self.Vz = self.way * (self.Vx @ self.Vy)
 
 	def __init__from_radius(self, radius: float) :
 		radius_min = self.angle_ab / 2
 		radius_max = math.pi / 2
 		
 		self.way = math.copysign(1.0, radius)
+		self.radius = max(radius_min, min(abs(radius), radius_max))
 
-		self.radius = self.way * max(radius_min, min(abs(radius), radius_max))
-
-		if radius != self.radius :
-			print(f"radius was clamped to {self.radius}")
+		if radius != self.way * self.radius :
+			print(f"radius was clamped to {self.way * self.radius}")
 
 		I = (self.A + self.B).normalized() # the point between A and B
 		Q = self.way * (self.B @ self.A).normalized()
 
 		t = math.acos(math.cos(self.radius) / (self.A * I))
-		self.V = I * math.cos(t) + Q * math.sin(t) # the center of the arc
+		self.Vx = I * math.cos(t) + Q * math.sin(t) # the center of the arc
 
 	def __init__from_point(self, M: g3d.Vector) :
+		""" better if M is a middle point in between A and B """
 		M = M.normalized()
 
 		Ix = (self.A + M).normalized()
@@ -57,18 +62,35 @@ class ArcTo() :
 
 		self.way = math.copysign(1.0, M * (Jz @ Iz))
 
-		self.V = self.way * (Jy @ Iy).normalized()
+		self.Vx = self.way * (Jy @ Iy).normalized()
 
-		self.radius = self.V.angle_to(M)
+		self.radius = self.Vx.angle_to(M)
+		if (math.pi / 2.0) <= self.radius :
+			raise ValueError("Excessive radius")
 
 	def progress_frame(self, t: float) :
 		""" frame local at the progress t, on the curve """
 
-		Vx = self.V
-		Vy = self.A
-		Vz = (Vx @ Vy).normalized()
+		Pq = self.progress_point(t)
 
-		Vm = Vy.deviate(Vz, t * self.length)
+		Pr = self.way * (Pq @ self.Vx).normalized()
+		Ps = Pr @ Pq
+
+		return Pq, Pr, Ps
+
+	def progress_point(self, t: float) :
+
+		Pm = self.Vz.deviate(self.Vy, t * self.sector_ab)
+		Pq = self.Vx.deviate(Pm, self.radius)
+
+		return Pq
+
+	# def plot_line(self, n=64) :
+	# 	p_lst = list()
+	# 	for i in range(n) :
+	# 		t = i / (n - 1)
+	# 		p_lst.append( self.progress_point(t) )
+	# 	return p_lst
 
 	def status(self, M: g3d.Vector) :
 
@@ -83,18 +105,10 @@ class ArcTo() :
 		print(f"Vz = {Vz}")
 		print(f"radius = {self.radius}")
 
-		# with g3d.UnitSpherePlot() as u :
-		#     u.add_point(Vx, 'Vx', 'r')
-		#     u.add_point(M, 'M', 'magenta')
-		#     u.add_point(Vy, 'Vy', 'g')
-		#     u.add_point(Vz, 'Vz', 'g')
-
 		# P is M projected on the arc
 		Px = Vx * math.cos(self.radius) + self.way * Vz * math.sin(self.radius)
 		Py = self.way * Vy
 		Pz = Px @ Py
-
-		# print(f"Px = {Px}")
 
 		Ax = self.V
 		Ay = (self.A @ self.V).normalized()
@@ -104,47 +118,11 @@ class ArcTo() :
 		By = (self.B @ self.V).normalized()
 		Bz = Bx @ By
 
-		# with g3d.UnitSpherePlot() as u :
-		# 	u.add_point(M, 'M', 'magenta')
-		# 	u.add_point(Px, 'P', 'Vyan')
-
-		# 	u.add_point(Vx, 'Vx', 'r')
-		# 	u.add_point(Vy, 'Vy', 'r')
-		# 	u.add_point(Vz, 'Vz', 'r')
-
-		# 	u.add_point(Ax, 'Ax', 'g')
-		# 	u.add_point(Ay, 'Ay', 'g')
-		# 	u.add_point(Az, 'Az', 'g')
-
-		# 	u.add_point(Bx, 'Bx', 'b')
-		# 	u.add_point(By, 'By', 'b')
-		# 	u.add_point(Bz, 'Bz', 'b')
-
-		# 	u.add_circle_part(self.V, self.A, self.B)
-
 		t = Vz.signed_angle_to(Az, self.way * Vx) / Az.angle_to(Bz)
 
 		# frame, local to P, oriented to the north
 		Nx = Px
 		Ny, Nz = g3d.plane.Plane(Px).frame()
-
-		# with g3d.UnitSpherePlot() as u :
-		# 	u.add_point(M, 'M', 'magenta')
-		# 	u.add_point(Px, 'P', 'Vyan')
-
-		# 	u.add_point(Vx, 'Vx', 'r')
-		# 	u.add_point(Vy, 'Vy', 'r')
-		# 	u.add_point(Vz, 'Vz', 'r')
-
-		# 	u.add_point(Px, 'Px', 'b')
-		# 	u.add_point(Py, 'Py', 'b')
-		# 	u.add_point(Pz, 'Pz', 'b')
-
-		# 	u.add_point(Nx, 'Nx', 'g')
-		# 	u.add_point(Ny, 'Ny', 'g')
-		# 	u.add_point(Nz, 'Nz', 'g')
-
-		# 	u.add_circle_part(self.V, self.A, self.B)
 
 		h = math.degrees( Py.signed_angle_to(Nz, Px) )
 		d = M.angle_to(Px)
@@ -155,10 +133,51 @@ class ArcTo() :
 
 		return Px, t, h, d
 
-if __name__ == '__main__' :
-	from goto.globe.blip import Blip
+class ArcCorridor(ArcSegment) :
+	def __init__(self, A: g3d.Vector, B: g3d.Vector, point_or_radius: typing.Union[float, g3d.Vector], a_width: float, b_width: float) :
+		ArcSegment.__init__(self, A, B, point_or_radius)
 
-	A = Blip(0.0, 0.0).as_vector
+		self.a_width = a_width
+		self.b_width = b_width
+
+	def border_point(self, t, s) :
+		s = math.copysign(1.0, s)
+		Pq, Pr, Ps = self.progress_frame(t)
+		w = self.a_width * (1 - t) + self.b_width * t
+
+		return Pq.deviate(Ps, w * s)
+
+	def _border_tip(self, t, d, s) :
+		s = math.copysign(1.0, s)
+		Pq, Pr, Ps = self.progress_frame(t)
+		w = self.a_width * (1 - t) + self.b_width * t
+
+		Pm = Ps.deviate(Pr, d * math.pi * s)
+		return Pq.deviate(Pm, w)
+
+if __name__ == '__main__' :
+
+	from cc_pathlib import Path
+
+	from goto.globe.blip import Blip
+	from goto.globe.plot import GlobePlotMpl, GlobePlotGps
+
+	A = Blip(-30.0, 0.0).as_vector
 	B = Blip(30.0, 0.0).as_vector
-	C = Blip(35.0, 15.0).as_vector
-	u = ArcTo(A, B, C)
+	C = Blip(0.0, 15.0).as_vector
+
+	u = ArcCorridor(A, B, C, 0.04, 0.06)
+
+	# with GlobePlotMpl() as plt :
+	# 	plt.add_point(A, 'A', 'r')
+	# 	plt.add_point(B, 'B', 'g')
+	# 	plt.add_point(C, 'C', 'b')
+	# 	plt.add_point(u.Vx, 'V', 'k')
+	# 	plt.add_segment(u)
+	# 	plt.add_border(u, "orange")
+
+	with GlobePlotGps(Path("test.plot.json")) as plt :
+		plt.add_point(A, 'A')
+		plt.add_point(B, 'B')
+		plt.add_segment(u)
+		plt.add_border(u)
