@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import math
+import collections
 
 from cc_pathlib import Path
 
 from goto.globe.blip import Blip
 
-from goto.globe.line import LineTo, LineCorridor
-from goto.globe.arc import ArcTo
+from goto.globe.line import LineSegment, LineCorridor
+from goto.globe.arc import ArcSegment, ArcCorridor
 
 from goto.globe.plot import GlobePlotGps
 
@@ -24,72 +25,55 @@ earth_radius = 6371008.7714
 def interpolate(x, a, b) :
 	return a*(1.0 - x) + b*x
 
+WskPt = collections.namedtuple('WskPt', ['verb', 'pos', 'radius', 'alt', 'spd', 'width'])
+
+def read_wskpt(verb, lat, lon, radius, alt, spd, width) :
+	return WskPt(verb, Blip(lat, lon).as_vector, radius, alt, spd, width)
+
 class RouteCut() :
 	def __init__(self) :
 		# load
 		self.r_skeleton = Path("0_skeleton.json").load()
-		self.plot(self.r_skeleton, Path("0_skeleton.plot.json"))
+		self.plot_segment(self.r_skeleton, Path("0_skeleton.plot.json"))
 
 		# apply first pass
 		self.r_centerline = self.pass_1(self.r_skeleton)
 		Path("1_centerline.json").save(self.r_centerline)
-		self.plot(self.r_centerline, Path("1_centerline.plot.json"))
+		self.plot_segment(self.r_centerline, Path("1_centerline.plot.json"))
 
 		self.r_effective = self.pass_2(self.r_centerline)
 		Path("2_effective.json").save(self.r_centerline)
-		self.plot(self.r_effective, Path("2_effective.plot.json"))
+		self.plot_segment(self.r_effective, Path("2_effective.plot.json"))
 
 		self.plot_corridor( Path("3_corridor.plot.json") )
 
 	def plot_corridor(self, route_pth) :
 		p_prev = None
-		r_lst = self.r_centerline
 		with GlobePlotGps(route_pth) as plt :
-			for i, line in enumerate(r_lst) :
-				verb, lat, lon, radius, alt, spd, width = line
-				p_curr = Blip(lat, lon).as_vector
-				plt.add_circle(p_curr, width / earth_radius)
+			for i, line in enumerate(self.r_centerline) :
+				p_curr = read_wskpt(* line)
 				if p_prev != None :
-					if radius == 0.0 :
-						line_AB = LineCorridor(p_prev, p_curr, r_lst[i-1][6] / earth_radius, width / earth_radius)
-						plt.add_line(line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1))
-						plt.add_line(line_AB.side_point(0.0, 1), line_AB.side_point(1.0, 1))
+					if p_curr.radius == 0.0 :
+						s = LineCorridor(p_prev.pos, p_curr.pos, p_prev.width / earth_radius, p_curr.width / earth_radius)
 					else :
-						plt.add_arc(p_prev, p_curr, radius / earth_radius)
-
-				plt.add_point(p_curr, f"{i}.{verb}")
+						s = ArcCorridor(p_prev.pos, p_curr.pos, p_curr.radius / earth_radius, p_prev.width / earth_radius, p_curr.width / earth_radius)
+					plt.add_border(s)
+				plt.add_point(p_curr.pos, f"{i}.{p_curr.verb}")
 				p_prev = p_curr
 
-	def plot(self, r_lst, route_pth) :
+	def plot_segment(self, r_lst, route_pth) :
 		p_prev = None
 		with GlobePlotGps(route_pth) as plt :
 			for i, line in enumerate(r_lst) :
-				verb, lat, lon, radius, alt, spd, width = line
-				p_curr = Blip(lat, lon).as_vector
-				# plt.add_circle(p_curr, width / earth_radius)
+				p_curr = read_wskpt(* line)
 				if p_prev != None :
-					# if radius == 0.0 :
-					# 	line_AB = LineCorridor(p_prev, p_curr, r_lst[i-1][6] / earth_radius, width / earth_radius)
-					# 	p_lst = [
-					# 		line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1),
-					# 		line_AB.side_point(1.0, 1), line_AB.side_point(0.0, 1),
-					# 	]
-					# 	plt.add_line(line_AB.side_point(0.0, -1), line_AB.side_point(1.0, -1))
-					# 	plt.add_line(line_AB.side_point(0.0, 1), line_AB.side_point(1.0, 1))
-					if radius == 0.0 :
-						plt.add_line(p_prev, p_curr)
+					if p_curr.radius == 0.0 or p_curr.verb not in ['GOTO', 'JOINT'] :
+						s = LineCorridor(p_prev.pos, p_curr.pos, p_prev.width / earth_radius, p_curr.width / earth_radius)
 					else :
-						plt.add_arc(p_prev, p_curr, radius / earth_radius)
-
-				plt.add_point(p_curr, f"{i}.{verb}")
-				# print(i, p_prev, type(p_prev))
-				# print(i, p_curr, type(p_curr))
-				# try :
+						s = ArcCorridor(p_prev.pos, p_curr.pos, p_curr.radius / earth_radius, p_prev.width / earth_radius, p_curr.width / earth_radius)
+					plt.add_segment(s)
+				plt.add_point(p_curr.pos, f"{i}.{p_curr.verb}")
 				p_prev = p_curr
-				# except :
-				# 	pass
-				# print(i, p_prev, type(p_prev))
-				# print(i, p_curr, type(p_curr))
 
 	def pass_1(self, r_prev) :
 		r_next = list()
@@ -115,7 +99,7 @@ class RouteCut() :
 				r_next.append(["GOTO", F.lat, F.lon, VFa * earth_radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
 				r_next.append(["GOTO", G.lat, G.lon, VFa * earth_radius, interpolate(CGp, a_lst[i+1], a_lst[i+2]), spd, width])
 			elif verb == '__TURN_4PT_2__' :
-				pass
+				pass # this point was treated previously with __TURN_4PT_1__
 			else :
 				r_next.append(line)
 		
@@ -138,8 +122,8 @@ class RouteCut() :
 		return r_next
 
 	def turn_3pt(self, A, B, C, d) :
-		line_AB = LineTo(A, B)
-		line_BC = LineTo(B, C)
+		line_AB = LineSegment(A, B)
+		line_BC = LineSegment(B, C)
 
 		q = line_AB.Ly.angle_to(line_BC.Ly, B)
 		Q = (line_AB.Ly + line_BC.Ly).normalized()
@@ -175,9 +159,9 @@ class RouteCut() :
 
 	def turn_4pt(self, A, B, C, D) :
 
-		line_AB = LineTo(A, B)
-		line_BC = LineTo(B, C)
-		line_CD = LineTo(C, D)
+		line_AB = LineSegment(A, B)
+		line_BC = LineSegment(B, C)
+		line_CD = LineSegment(C, D)
 
 		ABCa = line_AB.surface_angle(line_BC)
 		BCDa = line_BC.surface_angle(line_CD)

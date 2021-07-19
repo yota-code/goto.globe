@@ -120,12 +120,10 @@ class GlobePlotMpl(GlobePlot__base__) :
 		)
 	
 	def add_segment(self, u, color='k') :
-		p_lst = GlobePlot__base__.add_segment(self, u)
-		self._plot_lst(p_lst, color)
+		self._plot_lst(GlobePlot__base__.add_segment(self, u), color)
 
 	def add_border(self, u, color='k') :
-		p_lst = GlobePlot__base__.add_border(self, u)
-		self._plot_lst(p_lst, color)
+		self._plot_lst(GlobePlot__base__.add_border(self, u), color)
 
 	def add_circle(self, center, other, color='k') :
 		x = center

@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
-import functools
 import math
-import sympy
 import typing
 
 import geometrik.threed as g3d
 
-
 class ArcSegment() :
+
 	def __init__(self, A: g3d.Vector, B: g3d.Vector, point_or_radius: typing.Union[float, g3d.Vector]) :
 
 		self.A = A.normalized()
@@ -71,26 +69,19 @@ class ArcSegment() :
 	def progress_frame(self, t: float) :
 		""" frame local at the progress t, on the curve """
 
-		Pq = self.progress_point(t)
+		Px = self.progress_point(t)
 
-		Pr = self.way * (Pq @ self.Vx).normalized()
-		Ps = Pr @ Pq
+		Py = self.way * (Px @ self.Vx).normalized()
+		Pz = Py @ Px
 
-		return Pq, Pr, Ps
+		return Px, Py, Pz
 
 	def progress_point(self, t: float) :
 
 		Pm = self.Vz.deviate(self.Vy, t * self.sector_ab)
-		Pq = self.Vx.deviate(Pm, self.radius)
+		Px = self.Vx.deviate(Pm, self.radius)
 
-		return Pq
-
-	# def plot_line(self, n=64) :
-	# 	p_lst = list()
-	# 	for i in range(n) :
-	# 		t = i / (n - 1)
-	# 		p_lst.append( self.progress_point(t) )
-	# 	return p_lst
+		return Px
 
 	def status(self, M: g3d.Vector) :
 
@@ -142,18 +133,18 @@ class ArcCorridor(ArcSegment) :
 
 	def border_point(self, t, s) :
 		s = math.copysign(1.0, s)
-		Pq, Pr, Ps = self.progress_frame(t)
+		Px, Py, Pz = self.progress_frame(t)
 		w = self.a_width * (1 - t) + self.b_width * t
 
-		return Pq.deviate(Ps, w * s)
+		return Px.deviate(Pz, w * s)
 
 	def _border_tip(self, t, d, s) :
 		s = math.copysign(1.0, s)
-		Pq, Pr, Ps = self.progress_frame(t)
+		Px, Py, Pz = self.progress_frame(t)
 		w = self.a_width * (1 - t) + self.b_width * t
 
-		Pm = Ps.deviate(Pr, d * math.pi * s)
-		return Pq.deviate(Pm, w)
+		Pm = Pz.deviate(Py, d * math.pi * s)
+		return Px.deviate(Pm, w)
 
 if __name__ == '__main__' :
 

@@ -67,7 +67,6 @@ class GlobePlotGps(GlobePlot__base__) :
 				},
 			})	
 
-
 		self.pth.save({
 			"type": "FeatureCollection",
 			"features": point_lst + line_lst

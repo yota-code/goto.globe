@@ -39,7 +39,7 @@ class GlobePlot__base__() :
 
 		p_lst = list()
 		for t in np.linspace(0.0, d, 128) :
-			p_lst.append( Ax * math.cos(t) + Ay * math.sin(t) )
+			p_lst.append( Ax.deviate(Ay, t) )
 
 		return p_lst
 
