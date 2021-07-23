@@ -33,19 +33,29 @@ def read_wskpt(verb, lat, lon, radius, alt, spd, width) :
 class RouteCut() :
 	def __init__(self) :
 		# load
-		self.r_skeleton = Path("0_skeleton.json").load()
-		self.plot_segment(self.r_skeleton, Path("0_skeleton.plot.json"))
 
-		# apply first pass
-		self.r_centerline = self.pass_1(self.r_skeleton)
-		Path("1_centerline.json").save(self.r_centerline)
-		self.plot_segment(self.r_centerline, Path("1_centerline.plot.json"))
+		centerline_pth = Path("1_centerline.json")
+		effective_pth = Path("2_effective.json")
 
-		self.r_effective = self.pass_2(self.r_centerline)
-		Path("2_effective.json").save(self.r_centerline)
+		if Path("0_skeleton.json").is_file() :
+			self.r_skeleton = Path("0_skeleton.json").load()
+			self.plot_segment(self.r_skeleton, Path("0_skeleton.plot.json"))
+
+			# apply first pass
+			self.r_centerline = self.pass_1(self.r_skeleton)
+			Path("1_centerline.json").save(self.r_centerline)
+			self.plot_segment(self.r_centerline, Path("1_centerline.plot.json"))
+
+			self.plot_corridor( Path("3_corridor.plot.json") )
+
+		if centerline_pth.is_file() :
+			self.r_effective = self.pass_2(self.r_centerline)
+			Path("2_effective.json").save(self.r_centerline)
+		else :
+			self.r_effective = effective_pth.load()
 		self.plot_segment(self.r_effective, Path("2_effective.plot.json"))
 
-		self.plot_corridor( Path("3_corridor.plot.json") )
+		self.to_wsk_qnd_point(self.r_effective)
 
 	def plot_corridor(self, route_pth) :
 		p_prev = None
@@ -179,7 +189,7 @@ class RouteCut() :
 
 		# the center of the circle inscribed is V
 		V = - (ABCy @ BCDy).normalized() * math.copysign(1.0, ABCa)
-
+ 
 		E = line_AB.projection(V)
 		F = line_BC.projection(V)
 		G = line_CD.projection(V)
@@ -208,6 +218,18 @@ class RouteCut() :
 		E, F, V, VEa, AEp, BFp = line_AB.make_joint(line_BC)
 
 		return Blip.from_vector(E), Blip.from_vector(F), VEa, AEp
+
+	def to_wsk_qnd_point(self, r_lst) :
+		w_lst = [
+			"wsk_qnd_point_T wsk_qnd_line_arr[wsk_qnd_line_LEN] = {",
+		]
+		for verb, lat, lon, radius, alt, spd, width in r_lst :
+			print(verb, lat, lon, radius, alt, spd, width)
+			verb_id = 0 if radius == 0.0 else 1
+			w_lst.append('\t' + str([verb_id, [lat, lon], alt, spd, radius]).replace('[', '{').replace(']', '}') + ',')
+		w_lst.append("};")
+		w_txt = '\n'.join(w_lst)
+		Path("4_wsk_qnd.c").write_text(w_txt)
 
 if __name__ == "__main__" :
 	u = RouteCut()
