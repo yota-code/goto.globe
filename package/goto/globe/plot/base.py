@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+import typing
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,33 +39,32 @@ class GlobePlot__base__() :
 
 		p_lst = list()
 		for t in np.linspace(0.0, d, 128) :
-			q = Ax * math.cos(t) + Ay * math.sin(t)
-			p_lst.append(q)
+			p_lst.append( Ax.deviate(Ay, t) )
 
 		return p_lst
 
-	def add_arc(self, Ax, Bx, radius=0.0) :
-		Cx = self._find_center(Ax, Bx, radius)
-
-		Az = (Cx @ Ax).normalized()
-		Ay = Az @ Cx
-
-		Bz = (Cx @ Bx).normalized()
-		By = Bz @ Cx
-
-		z = By.angle_to(Ay, Cx)
-
-		d1 = Cx.angle_to(Ax)
-		d2 = Cx.angle_to(Bx)
-
-		d = (d1 + d2)/2
-
+	def add_segment(self, u, n=64) :
 		p_lst = list()
-		for t in np.linspace(0.0, z, 128) :
-			q = (By * math.cos(t) + Bz * math.sin(t))
-			r = (Cx * math.cos(d) + q * math.sin(d))
-			p_lst.append(r)
+		for i in range(n) :
+			t = i / (n - 1)
+			p_lst.append( u.progress_point(t) )
+		return p_lst
 
+	def add_border(self, u, n=64) :
+		p_lst = list()
+		for i in range(n) :
+			t = i / (n - 1)
+			p_lst.append( u.border_point(t, 1) )
+		for i in range(n) :
+			d = i / (n - 1)
+			p_lst.append( u._border_tip(1.0, d, 1) )
+		for i in range(n) :
+			t = 1 - (i / (n - 1))
+			p_lst.append( u.border_point(t, -1) )
+		for i in range(n) :
+			d = 1 - (i / (n - 1))
+			p_lst.append( u._border_tip(0.0, d, -1) )
+		p_lst.append(p_lst[0])
 		return p_lst
 
 	def _find_center(self, Ax, Bx, radius) :

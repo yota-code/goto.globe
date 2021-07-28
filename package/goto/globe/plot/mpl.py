@@ -57,6 +57,13 @@ class GlobePlotMpl(GlobePlot__base__) :
 
 		return self
 
+	def _plot_lst(self, p_lst, color) :
+		self.axe.plot(
+			[p.x for p in p_lst],
+			[p.y for p in p_lst],
+			[p.z for p in p_lst], color=color
+		)
+
 	def add_arc_from_radius(self, Ax, Bx, radius, color='k') :
 
 		A = Ax.normalized()
@@ -111,6 +118,12 @@ class GlobePlotMpl(GlobePlot__base__) :
 			[i[1] for i in p_lst],
 			[i[2] for i in p_lst], color=color
 		)
+	
+	def add_segment(self, u, color='k') :
+		self._plot_lst(GlobePlot__base__.add_segment(self, u), color)
+
+	def add_border(self, u, color='k') :
+		self._plot_lst(GlobePlot__base__.add_border(self, u), color)
 
 	def add_circle(self, center, other, color='k') :
 		x = center

@@ -17,8 +17,6 @@ class Blip() :
 	@staticmethod
 	def from_vector(v) :
 
-		print(v, type(v))
-
 		if not v._is_unit :
 			v = v.normalized()
 			
@@ -50,9 +48,23 @@ class Blip() :
 
 		return v
 
-	def p_mercator(self) :
-		x = self.lon
-		y = math.tan(self.lat)
+	@property
+	def as_mercator(self) :
+		# https://en.wikipedia.org/wiki/Mercator_projection
+		x = math.radians( self.lon )
+		y = math.log(math.tan(math.pi/4 + math.radians(self.lat)/2))
+		return x, y
+
+	@property
+	def as_openstreetmap(self, zoom) :
+		# https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg
+		
+		lat_rad = math.radians(self.lat)
+		n = 2**zoom
+		x = int(n * (self.lon + 180.0) / 360.0)
+		y = int(n * (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0)
+
+		return x, y
 
 	def p_gnomic(self, zero, pos) :
 
