@@ -132,13 +132,17 @@ class RouteCut() :
 		return r_next
 
 	def turn_3pt(self, A, B, C, d) :
-		line_AB = LineSegment(A, B)
+
+		print("d =", d)
+		line_BA = LineSegment(B, A)
 		line_BC = LineSegment(B, C)
 
-		q = line_AB.Ly.angle_to(line_BC.Ly, B)
-		Q = (line_AB.Ly + line_BC.Ly).normalized()
+		q = line_BA.Ly.angle_to(line_BC.Ly, B)
+		Q = (line_BA.Ly + line_BC.Ly).normalized()
 
 		w = math.copysign(1.0, q)
+		print("q = ", q)
+		print("w = ", w)
 
 		R1 = - (A * Q)**2 / (
 		    A.y**2*(-1+B.y**2) +
@@ -148,21 +152,24 @@ class RouteCut() :
 		    A.x**2*(B.y**2+B.z**2)
 		)
 
-		t = math.acos(math.sqrt(math.cos(d)**2 - R1)/math.sqrt(1 - R1))
+		t = math.acos(math.sqrt(math.cos(d)**2 - R1) / math.sqrt(1 - R1))
 
-		ABCz = w * (line_AB.Lz + line_BC.Lz).normalized()
+		V = B.deviate(Q, t)
 
-		V = B.deviate(ABCz, t)
-
-		E = line_AB.projection(V)
+		E = line_BA.projection(V)
 		F = line_BC.projection(V)
 
 		VEa = V.angle_to(E)
 		VFa = V.angle_to(F)
 
-		assert(	math.isclose(VEa, VFa, rel_tol=1e-4) )
+		try :
+			assert(	math.isclose(VEa, VFa, rel_tol=1e-4) )
+			assert(	math.isclose(VEa, d, rel_tol=1e-4) )
+		except AssertionError :
+			print(VEa, VFa, d)
+			raise
 
-		BEp = B.angle_to(E) / line_AB.length
+		BEp = B.angle_to(E) / line_BA.length
 		BFp = B.angle_to(F) / line_BC.length
 
 		return Blip.from_vector(E), Blip.from_vector(F), VEa, BEp, BFp
@@ -226,7 +233,7 @@ class RouteCut() :
 		for verb, lat, lon, radius, alt, spd, width in r_lst :
 			print(verb, lat, lon, radius, alt, spd, width)
 			verb_id = 0 if radius == 0.0 else 1
-			w_lst.append('\t' + str([verb_id, [lat, lon], alt, spd, radius]).replace('[', '{').replace(']', '}') + ',')
+			w_lst.append('\t' + str([verb_id, [lat, lon], radius, alt, spd]).replace('[', '{').replace(']', '}') + ',')
 		w_lst.append("};")
 		w_txt = '\n'.join(w_lst)
 		Path("4_wsk_qnd.c").write_text(w_txt)
