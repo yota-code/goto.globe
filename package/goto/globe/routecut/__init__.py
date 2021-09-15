@@ -2,6 +2,7 @@
 
 import math
 import collections
+from os import wait4
 
 from cc_pathlib import Path
 
@@ -31,7 +32,7 @@ def read_wskpt(verb, lat, lon, radius, alt, spd, width) :
 	return WskPt(verb, Blip(lat, lon).as_vector, radius, alt, spd, width)
 
 class RouteCut() :
-	def __init__(self) :
+	def __init__(self, lat_orig=0.0, lon_orig=0.0) :
 		# load
 
 		centerline_pth = Path("1_centerline.json")
@@ -39,6 +40,9 @@ class RouteCut() :
 
 		if Path("0_skeleton.json").is_file() :
 			self.r_skeleton = Path("0_skeleton.json").load()
+			for line in self.r_skeleton :
+				line[1] += lat_orig
+				line[2] += lon_orig
 			self.plot_segment(self.r_skeleton, Path("0_skeleton.plot.json"))
 
 			# apply first pass
@@ -90,15 +94,17 @@ class RouteCut() :
 		a_lst = [ line[4] for line in r_prev ]
 
 		for i, line in enumerate(r_prev) :
+			print("pass_1 ::", line)
 			verb, lat, lon, radius, alt, spd, width = line
 			if verb == '__TURN_3PT__' :
 				A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
 				B = Blip(lat, lon).as_vector
 				C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
 				r = radius / earth_radius
-				E, F, VEa, AEp, BFp = self.turn_3pt(A, B, C, r)
-				r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
-				r_next.append(["GOTO", F.lat, F.lon, VEa * earth_radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
+				E, F, BEp, BFp, w = self.turn_3pt(A, B, C, r)
+				r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(BEp, a_lst[i-1], a_lst[i]), spd, width])
+				r_next.append(["GOTO", F.lat, F.lon, w*radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
+				print(r_next[-2:])
 			elif verb == '__TURN_4PT_1__' :
 				A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
 				B = Blip(lat, lon).as_vector
@@ -172,7 +178,7 @@ class RouteCut() :
 		BEp = B.angle_to(E) / line_BA.length
 		BFp = B.angle_to(F) / line_BC.length
 
-		return Blip.from_vector(E), Blip.from_vector(F), VEa, BEp, BFp
+		return Blip.from_vector(E), Blip.from_vector(F), BEp, BFp, w
 
 	def turn_4pt(self, A, B, C, D) :
 
@@ -239,4 +245,4 @@ class RouteCut() :
 		Path("4_wsk_qnd.c").write_text(w_txt)
 
 if __name__ == "__main__" :
-	u = RouteCut()
+	u = RouteCut(43.436667, 5.215)
