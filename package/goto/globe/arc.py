@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+from re import S
 import typing
 
 import geometrik.threed as g3d
@@ -9,25 +10,28 @@ class ArcSegment() :
 
 	def __init__(self, A: g3d.Vector, B: g3d.Vector, point_or_radius: typing.Union[float, g3d.Vector]) :
 
-		self.A = A.normalized()
-		self.B = B.normalized()
+		self.Ax = A.normalized()
+		self.Bx = B.normalized()
 
-		self.angle_ab = self.A.angle_to(self.B) # distance between A and B
+		self.angle_ab = self.Ax.angle_to(self.Bx) # distance between A and B
 
 		if isinstance(point_or_radius, float) :
 			self.__init__from_radius(point_or_radius)
 		elif isinstance(point_or_radius, g3d.Vector) :
 			self.__init__from_point(point_or_radius)
 
-		Az = (self.Vx @ self.A).normalized()
-		Bz = (self.Vx @ self.B).normalized()
+		self.Ay = self.way * (self.Ax @ self.Vx).normalized()
+		self.Az = self.Ax @ self.Ay
 
-		self.sector_ab = Az.angle_to(Bz) # angle covered by the arc
-		self.length = self.sector_ab * math.sin(self.radius) # geodesic distance
+		self.By = self.way * (self.Bx @ self.Vx).normalized()
+		self.Bz = self.Bx @ self.By
+
+		self.aperture_ab = self.Ay.angle_to(self.By) # angle covered by the arc
+		self.length = self.aperture_ab * math.sin(self.radius) # geodesic distance
 
 		# compute the initial frame, direct only for right turns
-		self.Vy = - self.way * Az
-		self.Vz = self.way * (self.Vx @ self.Vy)
+		self.Vz = self.Ay
+		self.Vy = -self.way * (self.Vz @ self.Vx)
 
 	def __init__from_radius(self, radius: float) :
 		radius_min = self.angle_ab / 2
@@ -39,21 +43,24 @@ class ArcSegment() :
 		if radius != self.way * self.radius :
 			print(f"radius was clamped to {self.way * self.radius}")
 
-		I = (self.A + self.B).normalized() # the point between A and B
-		Q = self.way * (self.B @ self.A).normalized()
+		I = (self.Ax + self.Bx).normalized() # the point between A and B
+		Q = self.way * (self.Bx @ self.Ax).normalized()
 
-		t = math.acos(math.cos(self.radius) / (self.A * I))
+		r = math.cos(self.radius) / (self.Ax * I)
+		s = max(-1.0, min(r, 1.0))
+		t = math.acos(s)
+
 		self.Vx = I * math.cos(t) + Q * math.sin(t) # the center of the arc
 
 	def __init__from_point(self, M: g3d.Vector) :
 		""" better if M is a middle point in between A and B """
 		M = M.normalized()
 
-		Ix = (self.A + M).normalized()
-		Jx = (M + self.B).normalized()
+		Ix = (self.Ax + M).normalized()
+		Jx = (M + self.Bx).normalized()
 
-		Iz = (M @ self.A).normalized()
-		Jz = (self.B @ M).normalized()
+		Iz = (M @ self.Ax).normalized()
+		Jz = (self.Bx @ M).normalized()
 
 		Iy = Ix @ Iz
 		Jy = Jx @ Jz
@@ -78,49 +85,54 @@ class ArcSegment() :
 
 	def progress_point(self, t: float) :
 
-		Pm = self.Vz.deviate(self.Vy, t * self.sector_ab)
+		Pm = self.Vy.deviate(self.Vz, t * self.aperture_ab)
 		Px = self.Vx.deviate(Pm, self.radius)
 
 		return Px
 
 	def status(self, M: g3d.Vector) :
 
-		# frame local to C, oriented with Vz toward M
-		Vx = self.V
-		Vy = (M @ Vx).normalized()
-		Vz = Vx @ Vy
+		# frame local to V, oriented with Uz toward M, and Uy in the way of displacement
+		Ux = self.Vx
+		Uy = self.way * (M @ Ux).normalized()
+		Uz = self.way * (Ux @ Uy)
 
-		print(f"Vx = {Vx}")
-		print(f"Vy = {Vy}")
-		print(f"M @ Vx = {M @ Vx}")
-		print(f"Vz = {Vz}")
-		print(f"radius = {self.radius}")
+		self.Ux, self.Uy, self.Uz = Ux, Uy, Uz
+
+		# print(f"Ux = {Ux}")
+		# print(f"Uy = {Uy}")
+		# print(f"M @ Ux = {M @ Ux}")
+		# print(f"Uz = {Uz}")
+		# print(f"radius = {self.radius}")
 
 		# P is M projected on the arc
-		Px = Vx * math.cos(self.radius) + self.way * Vz * math.sin(self.radius)
-		Py = self.way * Vy
+		Px = Ux * math.cos(abs(self.radius)) + Uz * math.sin(abs(self.radius))
+		Py = self.way * Uy
 		Pz = Px @ Py
 
-		Ax = self.V
-		Ay = (self.A @ self.V).normalized()
+		self.Px, self.Py, self.Pz = Px, Py, Pz
+
+		Ax = self.Vx
+		Ay = (self.Ax @ self.Vx).normalized()
 		Az = Ax @ Ay
 
-		Bx = self.V
-		By = (self.B @ self.V).normalized()
+		Bx = self.Vx
+		By = (self.Bx @ self.Vx).normalized()
 		Bz = Bx @ By
 
-		t = Vz.signed_angle_to(Az, self.way * Vx) / Az.angle_to(Bz)
+		t = Uz.angle_to(Az, self.way * Ux) / Az.angle_to(Bz)
 
 		# frame, local to P, oriented to the north
 		Nx = Px
 		Ny, Nz = g3d.plane.Plane(Px).frame()
 
-		h = math.degrees( Py.signed_angle_to(Nz, Px) )
-		d = M.angle_to(Px)
+		h = math.degrees( Py.angle_to(Nz, Px) )
+		d = Px.angle_to(M, Uy)
 
-		print(f"M = {M}")
-		print(f"Px = {Px}")
-		print(f"d = {d}")
+		#print(f"M = {M}")
+		#print(f"Px = {Px}")
+		#print(f"d = {d}")
+		#print(f"h = {h}")
 
 		return Px, t, h, d
 

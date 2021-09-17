@@ -94,9 +94,9 @@ class GlobePlotMpl(GlobePlot__base__) :
 			mutation_scale=15, arrowstyle='-|>', color=color, shrinkA=0, shrinkB=0
 		))
 		self.axe.text(
-			Ax.x / 2,
-			Ax.y / 2,
-			Ax.z / 2,
+			2 * Ax.x / 3,
+			2 * Ax.y / 3,
+			2 * Ax.z / 3,
 			name,
 			horizontalalignment='center', verticalalignment='center', fontsize=10, color=color
 		)
