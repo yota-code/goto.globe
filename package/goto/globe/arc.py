@@ -29,6 +29,8 @@ class ArcSegment() :
 		self.aperture_ab = self.Ay.angle_to(self.By) # angle covered by the arc
 		self.length = self.aperture_ab * math.sin(self.radius) # geodesic distance
 
+		# print(f"radius = {self.radius}")
+
 		# compute the initial frame, direct only for right turns
 		self.Vz = self.Ay
 		self.Vy = -self.way * (self.Vz @ self.Vx)
@@ -43,14 +45,17 @@ class ArcSegment() :
 		if radius != self.way * self.radius :
 			print(f"radius was clamped to {self.way * self.radius}")
 
-		I = (self.Ax + self.Bx).normalized() # the point between A and B
-		Q = self.way * (self.Bx @ self.Ax).normalized()
+		Qx = (self.Ax + self.Bx).normalized() # the point between A and B
+		Qy = self.way * (self.Bx @ self.Ax).normalized()
 
-		r = math.cos(self.radius) / (self.Ax * I)
+		r = math.cos(self.radius) / (self.Ax * Qx)
 		s = max(-1.0, min(r, 1.0))
 		t = math.acos(s)
 
-		self.Vx = I * math.cos(t) + Q * math.sin(t) # the center of the arc
+		# print(f"Qx = {Qx}")
+		# print(f"Qy = {Qy}")
+
+		self.Vx = Qx * math.cos(t) + Qy * math.sin(t) # the center of the arc
 
 	def __init__from_point(self, M: g3d.Vector) :
 		""" better if M is a middle point in between A and B """
@@ -91,6 +96,8 @@ class ArcSegment() :
 		return Px
 
 	def status(self, M: g3d.Vector) :
+		# print(f"Vx = {self.Vx}")
+		# print(f"Ax = {self.Ax}")
 
 		# frame local to V, oriented with Uz toward M, and Uy in the way of displacement
 		Ux = self.Vx
@@ -106,11 +113,18 @@ class ArcSegment() :
 		# print(f"radius = {self.radius}")
 
 		# P is M projected on the arc
-		Px = Ux * math.cos(abs(self.radius)) + Uz * math.sin(abs(self.radius))
-		Py = self.way * Uy
+		# print(self.radius)
+		Px = Ux * math.cos(self.radius) + Uz * math.sin(self.radius)
+		Py = Uy
 		Pz = Px @ Py
+		# print(f"Px = {Px}")
+		# print(f"Py = {Py}")
+		# print(f"Pz = {Pz}")
 
 		self.Px, self.Py, self.Pz = Px, Py, Pz
+		# print(f"Ux = {Ux}")
+		# print(f"Uy = {Uy}")
+		# print(f"Uz = {Uz}")
 
 		Ax = self.Vx
 		Ay = (self.Ax @ self.Vx).normalized()
@@ -120,7 +134,7 @@ class ArcSegment() :
 		By = (self.Bx @ self.Vx).normalized()
 		Bz = Bx @ By
 
-		t = Uz.angle_to(Az, self.way * Ux) / Az.angle_to(Bz)
+		t = self.way * Uz.angle_to(Az, Ux) / Az.angle_to(Bz)
 
 		# frame, local to P, oriented to the north
 		Nx = Px
@@ -133,6 +147,8 @@ class ArcSegment() :
 		#print(f"Px = {Px}")
 		#print(f"d = {d}")
 		#print(f"h = {h}")
+
+		# print(f"Px = {Px}")
 
 		return Px, t, h, d
 

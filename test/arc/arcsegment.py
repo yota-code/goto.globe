@@ -9,27 +9,22 @@ from goto.globe.arc import ArcSegment
 
 from goto.globe.plot import GlobePlotMpl
 
+A = Blip(0.0, -45.0).as_vector
+B = Blip(0.0, 45.0).as_vector
 
-A = Blip(0.0, -90.0).as_vector
-B = Blip(0.0, -35.0).as_vector
+r = math.sqrt(3) / 2
 
-for i in [True, False] :
 
-	if i :
-		print("right turn")
-		M = Blip(15.0, -45.0).as_vector
-		arc = ArcSegment(A, B, 0.55)
-	else :
-		print("left turn")
-		M = Blip(-15.0, -45.0).as_vector
-		arc = ArcSegment(A, B, -0.55)
+M = Blip(0.0, -50.0).as_vector
+arc = ArcSegment(A, B, -r)
 
-	P, t, h, d = arc.status(M)
+P, t, h, d = arc.status(M)
 
-	print(f"HDG = {h}")
-	print(f"adv = {t*100:0.1f}%")
-	print(f"dev = {d}")
+print(f"HDG = {h}")
+print(f"adv = {t*100:0.1f}%")
+print(f"dev = {d}")
 
+if False :
 	with GlobePlotMpl() as u :
 		u.add_point(A, "A", 'purple')
 		u.add_point(B, "B", 'purple')
