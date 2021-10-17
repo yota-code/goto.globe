@@ -125,6 +125,21 @@ class GlobePlotMpl(GlobePlot__base__) :
 	def add_border(self, u, color='k') :
 		self._plot_lst(GlobePlot__base__.add_border(self, u), color)
 
+	def add_great_circle(self, Nx, color='k'):
+		p = g3d.Plane(Nx)
+		Ny, Nz = p.frame()
+		print(Ny, Nz)
+		p_lst = list()
+		for t in np.linspace(0.0, math.tau, 100) :
+			v = g3d.Vector.compose(Ny, Nz, t)
+			p_lst.append(v.as_tuple)
+
+		self.axe.plot(
+			[i[0] for i in p_lst],
+			[i[1] for i in p_lst],
+			[i[2] for i in p_lst], color=color
+		)
+
 	def add_circle(self, center, other, color='k') :
 		x = center
 		z = (center @ other).normalized()
