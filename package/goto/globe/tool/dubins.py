@@ -8,6 +8,11 @@ import geometrik.threed as g3d
 from goto.globe.plot import GlobePlotMpl
 
 
+def compute_circle(A, B, r) :
+	assert( r > 0 )
+
+	Ex = 
+
 def compute_internal(A, B, r) :
 	# two point A and B, center of the circles of radius r
 

@@ -142,10 +142,13 @@ class GlobePlotMpl(GlobePlot__base__) :
 
 	def add_circle(self, center, other, color='k') :
 		x = center
-		z = (center @ other).normalized()
-		y = z @ x
-
-		d = center.angle_to(other)
+		if isinstance(other, float) :
+			d = other
+			y, z = g3d.Plane(center).frame()
+		else :
+			z = (center @ other).normalized()
+			y = z @ x
+			d = center.angle_to(other)
 
 		p_lst = list()
 		for t in np.linspace(0.0, math.tau, 100) :
@@ -166,7 +169,7 @@ class GlobePlotMpl(GlobePlot__base__) :
 		Bz = (Cx @ Bx).normalized()
 		By = Bz @ Cx
 
-		z = By.signed_angle_to(Ay, Cx)
+		z = By.angle_to(Ay, Cx)
 
 		d1 = Cx.angle_to(Ax)
 		d2 = Cx.angle_to(Bx)
@@ -176,6 +179,36 @@ class GlobePlotMpl(GlobePlot__base__) :
 		p_lst = list()
 		for t in np.linspace(0.0, z, 100) :
 			q = (By * math.cos(t) + Bz * math.sin(t))
+			r = (Cx * math.cos(d) + q * math.sin(d))
+			p_lst.append([r.x, r.y, r.z])
+
+		self.axe.plot(
+			[i[0] for i in p_lst],
+			[i[1] for i in p_lst],
+			[i[2] for i in p_lst], color=color
+		)
+
+	def add_signed_arc(self, Ax, Bx, Cx, w, color='k') :
+		Az = (Cx @ Ax).normalized()
+		Ay = Az @ Cx
+
+		Bz = (Cx @ Bx).normalized()
+		By = Bz @ Cx
+
+		a_tmp = By.angle_to(Ay, Cx)
+		a_ref = (a_tmp) if (a_tmp * w > 0) else (math.tau - abs(a_tmp))
+
+		print(math.degrees(a_tmp))
+		print(math.degrees(a_ref))
+
+		d1 = Cx.angle_to(Ax)
+		d2 = Cx.angle_to(Bx)
+
+		d = math.copysign((d1 + d2)/2, w)
+
+		p_lst = list()
+		for t in np.linspace(0.0, a_ref, 100) :
+			q = (w *Ay * math.cos(-w * t) + w * Az * math.sin(-w * t))
 			r = (Cx * math.cos(d) + q * math.sin(d))
 			p_lst.append([r.x, r.y, r.z])
 
