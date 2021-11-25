@@ -189,14 +189,14 @@ class GlobePlotMpl(GlobePlot__base__) :
 		)
 
 	def add_signed_arc(self, Ax, Bx, Cx, w, color='k') :
-		Az = (Cx @ Ax).normalized()
-		Ay = Az @ Cx
+		Az = w * (Ax @ Cx).normalized()
+		Ay = w * (Cx @ Az)
 
-		Bz = (Cx @ Bx).normalized()
-		By = Bz @ Cx
+		Bz = w * (Bx @ Cx).normalized()
+		By = w * (Cx @ Bz)
 
-		a_tmp = By.angle_to(Ay, Cx)
-		a_ref = (a_tmp) if (a_tmp * w > 0) else (math.tau - abs(a_tmp))
+		a_tmp = w * By.angle_to(Ay, Cx)
+		a_ref = (a_tmp) if (a_tmp >= 0) else (math.tau + a_tmp)
 
 		print(math.degrees(a_tmp))
 		print(math.degrees(a_ref))
@@ -204,11 +204,11 @@ class GlobePlotMpl(GlobePlot__base__) :
 		d1 = Cx.angle_to(Ax)
 		d2 = Cx.angle_to(Bx)
 
-		d = math.copysign((d1 + d2)/2, w)
+		d = (d1 + d2)/2
 
 		p_lst = list()
 		for t in np.linspace(0.0, a_ref, 100) :
-			q = (w *Ay * math.cos(-w * t) + w * Az * math.sin(-w * t))
+			q = (Ay * math.cos(t) + Az * math.sin(t))
 			r = (Cx * math.cos(d) + q * math.sin(d))
 			p_lst.append([r.x, r.y, r.z])
 

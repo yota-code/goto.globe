@@ -2,4 +2,4 @@
 
 from goto.globe.blip import Blip
 
- 
+from goto.globe.common import *
