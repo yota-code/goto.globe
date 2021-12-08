@@ -198,8 +198,8 @@ class GlobePlotMpl(GlobePlot__base__) :
 		a_tmp = w * By.angle_to(Ay, Cx)
 		a_ref = (a_tmp) if (a_tmp >= 0) else (math.tau + a_tmp)
 
-		print(math.degrees(a_tmp))
-		print(math.degrees(a_ref))
+		# print(math.degrees(a_tmp))
+		# print(math.degrees(a_ref))
 
 		d1 = Cx.angle_to(Ax)
 		d2 = Cx.angle_to(Bx)
