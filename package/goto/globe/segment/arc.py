@@ -14,15 +14,13 @@ class SegmentArc() :
 
 		self.Ax = Ax
 		self.Bx = Bx
-		self.radius = radius
-		self.is_large_arc = is_large_arc
 
-		self.aperture = self.bounded_aperture()
+		self.aperture = self.bounded_aperture(radius)
 
-		self.Cx, self.Qz = self.compute_def()
+		self.Cx, self.Qz, self.sector = self.compute_def(radius, is_large_arc)
 
-	def bounded_aperture(self) :
-		Ax, Bx, radius = self.Ax, self.Bx, self.radius
+	def bounded_aperture(self, radius) :
+		Ax, Bx = self.Ax, self.Bx
 
 		a_mini = Ax.angle_to(Bx) / 2.0
 
@@ -36,11 +34,10 @@ class SegmentArc() :
 			else :
 				print(f"{a_mini} < ({a_bounded}) < {a_maxi}")
 
+		return a_bounded
 
-		return math.copysign(a_bounded, radius)
-
-	def compute_def(self) :
-		Ax, Bx, radius, is_large_arc = self.Ax, self.Bx, self.radius, self.is_large_arc
+	def compute_def(self, radius, is_large_arc) :
+		Ax, Bx = self.Ax, self.Bx
 
 		w = math.copysign(1.0, radius)
 		k = -1.0 if is_large_arc else 1.0
@@ -62,7 +59,9 @@ class SegmentArc() :
 		Bz = (Bx @ Cx).normalized()
 		By = (Cx @ Bz)
 
-		sector = Ay.angle_to(By)
+		sector = ( math.tau - Ay.angle_to(By, Cx) ) if is_large_arc else ( Ay.angle_to(By, Cx) )
+		sector = - Ay.angle_to(By, Cx) 
+		print(f"sector: {math.degrees(sector)} {is_large_arc}")
 
 		if self.debug :
 
@@ -72,8 +71,6 @@ class SegmentArc() :
 				plt.add_point(Ax, "Ax", "orange")
 				plt.add_point(Bx, "Bx", "cyan")
 				plt.add_point(Qx, "Qx", "r")
-				# plt.add_point(Qy, "Qy", "g")
-				# plt.add_point(Qz, "Qz", "b")
 				plt.add_point(Ay, "Ay", "r")
 				plt.add_point(By, "By", "r")
 				plt.add_point(Cx, "Cx", "magenta")
@@ -83,12 +80,59 @@ class SegmentArc() :
 
 				print(f"sector = {sector}")
 			
-		return Cx, Qz
+		return Cx, Qz, sector
 
 	def compute_sta(self, Mx) :
-		pass
 
+		print("sector:", math.degrees(self.sector))
 
+		is_large_arc = abs(self.sector) > math.pi
+
+		w = math.copysign(1.0, self.sector)
+		k = -1.0 if is_large_arc else 1.0
+
+		print(f"w={w} k={k}")
+
+		Cz = k * w * (Mx @ self.Cx).normalized()
+		Cy = -w * (Cz @ self.Cx)
+
+		aperture_cur = Mx.angle_to(self.Cx, self.Qz)
+
+		Px = g3d.Vector.compose(self.Cx, Cy, w * self.aperture)
+
+		dev_lat = Px.angle_to(Mx, self.Qz)
+
+		Ny, Nz = Px.frame(g3d.v_north)
+
+		trk = Cz.atan2(Nz, Ny)
+		print("trk:", trk, math.degrees(trk))
+
+		print(dev_lat * goto.globe.earth_radius)
+
+		print(Px)
+		print("aperture:", self.aperture)
+		print("angle Ax/Cx:", self.Ax.angle_to(self.Cx))
+		print(Px.angle_to(self.Cx))
+
+		if self.debug :
+			from goto.globe.plot import GlobePlotMpl
+
+			with GlobePlotMpl() as plt :
+				plt.add_point(self.Ax, "Ax", "orange")
+				plt.add_point(self.Bx, "Bx", "cyan")
+				plt.add_point(self.Cx, "Cx", "r")
+				plt.add_point(self.Qz, "Qz", "yellow")
+				plt.add_signed_arc(self.Ax, self.Bx, self.Cx, w)
+
+				plt.add_point(Mx, "Mx")
+
+				plt.add_point(Cy, "Cy", "g")
+				plt.add_point(Cz, "Cz", "b")
+
+				plt.add_point(Px, "Px", "pink")
+
+				plt.add_point(Ny, "Ny")
+				plt.add_point(Nz, "Nz")
 
 if __name__ == '__main__' :
 	from goto.globe.blip import Blip
@@ -104,5 +148,10 @@ if __name__ == '__main__' :
 	SVO = Blip(55.972778, 37.414722).as_vector
 	SIN = Blip(1.359167, 103.989444).as_vector
 
-	u = SegmentArc(LIS, SVO, 3000000.0, False)
-	u = SegmentArc(LIS, SVO, 3000000.0, True)
+	u = SegmentArc(LIS, SVO, -2500000.0, False)
+	u = SegmentArc(LIS, SVO, 2500000.0, False)
+	u = SegmentArc(LIS, SVO, 2500000.0, True)
+	u = SegmentArc(LIS, SVO, -2500000.0, True)
+	# u.compute_sta(MRS)
+
+	#u = SegmentArc(LIS, SVO, 2500000.0, True)
