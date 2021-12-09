@@ -60,25 +60,27 @@ class SegmentArc() :
 		By = (Cx @ Bz)
 
 		sector = ( math.tau - Ay.angle_to(By, Cx) ) if is_large_arc else ( Ay.angle_to(By, Cx) )
-		sector = - Ay.angle_to(By, Cx) 
-		print(f"sector: {math.degrees(sector)} {is_large_arc}")
+		sector = k * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
+		sector = -k * w * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
 
-		if self.debug :
+		print(f"sector: {math.degrees(sector)} w={w} k={k}", "turn right" if w > 0.0 else "turn left")
 
-			from goto.globe.plot import GlobePlotMpl
+		# if self.debug :
 
-			with GlobePlotMpl() as plt :
-				plt.add_point(Ax, "Ax", "orange")
-				plt.add_point(Bx, "Bx", "cyan")
-				plt.add_point(Qx, "Qx", "r")
-				plt.add_point(Ay, "Ay", "r")
-				plt.add_point(By, "By", "r")
-				plt.add_point(Cx, "Cx", "magenta")
-				plt.add_point(Cy, "Cy", "purple")
-				plt.add_point(Cz, "Cz", "k")
-				plt.add_signed_arc(Ax, Bx, Cx, w)
+		# 	from goto.globe.plot import GlobePlotMpl
 
-				print(f"sector = {sector}")
+		# 	with GlobePlotMpl() as plt :
+		# 		plt.add_point(Ax, "Ax", "orange")
+		# 		plt.add_point(Bx, "Bx", "cyan")
+		# 		plt.add_point(Qx, "Qx", "r")
+		# 		plt.add_point(Ay, "Ay", "r")
+		# 		plt.add_point(By, "By", "r")
+		# 		plt.add_point(Cx, "Cx", "magenta")
+		# 		plt.add_point(Cy, "Cy", "purple")
+		# 		plt.add_point(Cz, "Cz", "k")
+		# 		plt.add_signed_arc(Ax, Bx, Cx, w)
+
+		# 		print(f"sector = {sector}")
 			
 		return Cx, Qz, sector
 
