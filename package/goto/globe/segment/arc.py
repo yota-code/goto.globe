@@ -84,6 +84,9 @@ class SegmentArc() :
 			
 		return Cx, Qz, sector
 
+	def compute_advance(self, Ap, Pp) :
+		Cx, sector = self.Cx, self.sector
+
 	def compute_sta(self, Mx) :
 
 		print("sector:", math.degrees(self.sector))
@@ -96,11 +99,13 @@ class SegmentArc() :
 		print(f"w={w} k={k}")
 
 		Cz = k * w * (Mx @ self.Cx).normalized()
-		Cy = -w * (Cz @ self.Cx)
+		Cy = (Cz @ (-w * self.Cx))
+
+		Qy = (self.Qz @ (-w * self.Cx))
 
 		aperture_cur = Mx.angle_to(self.Cx, self.Qz)
 
-		Px = g3d.Vector.compose(self.Cx, Cy, w * self.aperture)
+		Px = g3d.Vector.compose(self.Cx, Cy, k * self.aperture)
 
 		dev_lat = Px.angle_to(Mx, self.Qz)
 
@@ -111,7 +116,17 @@ class SegmentArc() :
 
 		print(dev_lat * goto.globe.earth_radius)
 
-		print(Px)
+		Ap = self.Ax.project(self.Cx).normalized()
+		Bp = self.Bx.project(self.Cx).normalized()
+		Pp = Px.project(self.Cx).normalized()
+
+		Aa = Ap.atan2(Qy, self.Qz)
+		Pa = Pp.atan2(Qy, self.Qz)
+		Ba = Bp.atan2(Qy, self.Qz)
+
+		advance = (Pa - Aa) / (Ba - Aa)
+
+		print("advance:", advance)
 		print("aperture:", self.aperture)
 		print("angle Ax/Cx:", self.Ax.angle_to(self.Cx))
 		print(Px.angle_to(self.Cx))
@@ -122,19 +137,26 @@ class SegmentArc() :
 			with GlobePlotMpl() as plt :
 				plt.add_point(self.Ax, "Ax", "orange")
 				plt.add_point(self.Bx, "Bx", "cyan")
-				plt.add_point(self.Cx, "Cx", "r")
-				plt.add_point(self.Qz, "Qz", "yellow")
+				# plt.add_point(Qy, "Qy", "b")
+				# plt.add_point(self.Qz, "Qz", "yellow")
+				# plt.add_point(Qy, "Qy", "b")
 				plt.add_signed_arc(self.Ax, self.Bx, self.Cx, w)
 
-				plt.add_point(Mx, "Mx")
+				# plt.add_point(Mx, "Mx")
 
+				plt.add_point(self.Cx, "Cx", "r")
 				plt.add_point(Cy, "Cy", "g")
 				plt.add_point(Cz, "Cz", "b")
 
-				plt.add_point(Px, "Px", "pink")
+				# plt.add_point(Px, "Px", "pink")
 
-				plt.add_point(Ny, "Ny")
-				plt.add_point(Nz, "Nz")
+				# plt.add_point(Ny, "Ny")
+				# plt.add_point(Nz, "Nz")
+
+				plt.add_point(Ap, "Ap", "magenta")
+				plt.add_point(Bp, "Bp", "magenta")
+				plt.add_point(Pp, "Pp", "magenta")
+
 
 if __name__ == '__main__' :
 	from goto.globe.blip import Blip
@@ -150,10 +172,14 @@ if __name__ == '__main__' :
 	SVO = Blip(55.972778, 37.414722).as_vector
 	SIN = Blip(1.359167, 103.989444).as_vector
 
-	u = SegmentArc(LIS, SVO, -2500000.0, False)
-	u = SegmentArc(LIS, SVO, 2500000.0, False)
-	u = SegmentArc(LIS, SVO, 2500000.0, True)
-	u = SegmentArc(LIS, SVO, -2500000.0, True)
-	# u.compute_sta(MRS)
+	A = Blip(0.0, 0.0).as_vector
+	B = Blip(30.0, 0.0).as_vector
+	M = Blip(5.0, 10.0).as_vector
+
+	u = SegmentArc(A, B, -2500000.0, False)
+	u = SegmentArc(A, B, 2500000.0, False)
+	u = SegmentArc(A, B, 2500000.0, True).compute_sta(M)
+	u = SegmentArc(A, B, -2500000.0, True)
+	# u
 
 	#u = SegmentArc(LIS, SVO, 2500000.0, True)
