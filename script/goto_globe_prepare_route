@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+
+import goto.globe.route
+
+u = goto.globe.route.RoutePrepare()
+

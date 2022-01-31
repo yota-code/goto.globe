@@ -1,28 +1,30 @@
-#!/usr/bin:env python3
+#!/usr/bin/env python3
 
 import math
 
 import goto.globe
+from goto.globe.blip import Blip
+
 import geometrik.threed as g3d
 
 
 class SegmentArc() :
 
-	debug = True
+	debug = False
 
-	def __init__(self, Ax: g3d.Vector, Bx: g3d.Vector, radius: float, is_large_arc:bool=False) :
+	def __init__(self, A:Blip, B:Blip, radius: float, is_large_arc:bool=False) :
+		if self.debug :
+			print(f"SegmentArc(A, B, {radius}, {is_large_arc})")
 
-		self.Ax = Ax
-		self.Bx = Bx
+		self.Ax = A.as_vector
+		self.Bx = B.as_vector
 
 		self.aperture = self.bounded_aperture(radius)
 
-		self.Cx, self.Qz, self.sector = self.compute_def(radius, is_large_arc)
+		self.compute_def(radius, is_large_arc)
 
 	def bounded_aperture(self, radius) :
-		Ax, Bx = self.Ax, self.Bx
-
-		a_mini = Ax.angle_to(Bx) / 2.0
+		a_mini = self.Ax.angle_to(self.Bx) / 2.0
 
 		a_abs = abs(radius / goto.globe.earth_radius)
 		a_maxi = math.pi / 2.0
@@ -59,11 +61,28 @@ class SegmentArc() :
 		Bz = (Bx @ Cx).normalized()
 		By = (Cx @ Bz)
 
-		sector = ( math.tau - Ay.angle_to(By, Cx) ) if is_large_arc else ( Ay.angle_to(By, Cx) )
-		sector = k * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
+		# sector = ( math.tau - Ay.angle_to(By, Cx) ) if is_large_arc else ( Ay.angle_to(By, Cx) )
+		# sector = k * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
 		sector = -k * w * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
 
-		print(f"sector: {math.degrees(sector)} w={w} k={k}", "turn right" if w > 0.0 else "turn left")
+		self.Cx, self.Qz, self.sector = Cx, Qz, sector
+
+	def plot_def(self, pth=None) :
+		from goto.globe.plot import GlobePlotMpl
+
+		w = math.copysign(1.0, self.sector)
+		k = -1.0 if abs(self.sector) > math.pi else 1.0
+
+		with GlobePlotMpl(pth) as plt :
+			plt.add_point(self.Ax, "Ax", "orange")
+			plt.add_point(self.Bx, "Bx", "cyan")
+			plt.add_point(self.Cx, "Cx", "magenta")
+			plt.add_point(self.Qz, "Qz", "magenta")
+			plt.add_circle(self.Cx, self.Ax, "yellow")
+			plt.add_signed_arc(self.Ax, self.Bx, self.Cx, w)
+
+
+		# print(f"sector: {math.degrees(sector)} w={w} k={k}", "turn right" if w > 0.0 else "turn left")
 
 		# if self.debug :
 
@@ -82,80 +101,105 @@ class SegmentArc() :
 
 		# 		print(f"sector = {sector}")
 			
-		return Cx, Qz, sector
 
 	def compute_advance(self, Ap, Pp) :
 		Cx, sector = self.Cx, self.sector
 
-	def compute_sta(self, Mx) :
+	def compute_sta(self, M) :
 
-		print("sector:", math.degrees(self.sector))
+		self.Mx = M.as_vector
+
+		# print("sector:", math.degrees(self.sector))
 
 		is_large_arc = abs(self.sector) > math.pi
 
 		w = math.copysign(1.0, self.sector)
 		k = -1.0 if is_large_arc else 1.0
 
-		print(f"w={w} k={k}")
+		# print(f"w={w} k={k}")
 
-		Cz = k * w * (Mx @ self.Cx).normalized()
-		Cy = (Cz @ (-w * self.Cx))
+		self.Cz = k * w * (self.Mx @ self.Cx).normalized()
+		self.Cy = (self.Cz @ (-w * self.Cx))
 
 		Qy = (self.Qz @ (-w * self.Cx))
 
-		aperture_cur = Mx.angle_to(self.Cx, self.Qz)
+		aperture_cur = self.Mx.angle_to(self.Cx, self.Qz)
 
-		Px = g3d.Vector.compose(self.Cx, Cy, k * self.aperture)
+		Px = g3d.Vector.compose(self.Cx, self.Cy, k * self.aperture)
 
-		dev_lat = Px.angle_to(Mx, self.Qz)
+		dev_lat = Px.angle_to(self.Mx, self.Qz)
 
 		Ny, Nz = Px.frame(g3d.v_north)
 
-		trk = Cz.atan2(Nz, Ny)
-		print("trk:", trk, math.degrees(trk))
+		track = self.Cz.atan2(Nz, Ny)
+		# print("trk:", trk, math.degrees(trk))
 
-		print(dev_lat * goto.globe.earth_radius)
+		# print(dev_lat * goto.globe.earth_radius)
 
-		Ap = self.Ax.project(self.Cx).normalized()
-		Bp = self.Bx.project(self.Cx).normalized()
-		Pp = Px.project(self.Cx).normalized()
+		self.Ap = self.Ax.project(self.Cx).normalized()
+		self.Bp = self.Bx.project(self.Cx).normalized()
+		self.Pp = Px.project(self.Cx).normalized()
 
-		Aa = Ap.atan2(Qy, self.Qz)
-		Pa = Pp.atan2(Qy, self.Qz)
-		Ba = Bp.atan2(Qy, self.Qz)
+		Aa = self.Ap.atan2(Qy, self.Qz)
+		Pa = self.Pp.atan2(Qy, self.Qz)
+		Ba = self.Bp.atan2(Qy, self.Qz)
 
-		advance = (Pa - Aa) / (Ba - Aa)
+		self.advance = (Pa - Aa) / (Ba - Aa)
 
-		print("advance:", advance)
-		print("aperture:", self.aperture)
-		print("angle Ax/Cx:", self.Ax.angle_to(self.Cx))
-		print(Px.angle_to(self.Cx))
+		self.track = track
+		self.Px = Px
 
-		if self.debug :
-			from goto.globe.plot import GlobePlotMpl
+		# print("advance:", advance)
+		# print("aperture:", self.aperture)
+		# print("angle Ax/Cx:", self.Ax.angle_to(self.Cx))
+		# print(Px.angle_to(self.Cx))
 
-			with GlobePlotMpl() as plt :
-				plt.add_point(self.Ax, "Ax", "orange")
-				plt.add_point(self.Bx, "Bx", "cyan")
-				# plt.add_point(Qy, "Qy", "b")
-				# plt.add_point(self.Qz, "Qz", "yellow")
-				# plt.add_point(Qy, "Qy", "b")
-				plt.add_signed_arc(self.Ax, self.Bx, self.Cx, w)
+		# if self.debug :
+		# 	from goto.globe.plot import GlobePlotMpl
 
-				# plt.add_point(Mx, "Mx")
+		# 	with GlobePlotMpl() as plt :
+		# 		plt.add_point(self.Ax, "Ax", "orange")
+		# 		plt.add_point(self.Bx, "Bx", "cyan")
+		# 		# plt.add_point(Qy, "Qy", "b")
+		# 		# plt.add_point(self.Qz, "Qz", "yellow")
+		# 		# plt.add_point(Qy, "Qy", "b")
+		# 		plt.add_signed_arc(self.Ax, self.Bx, self.Cx, w)
 
-				plt.add_point(self.Cx, "Cx", "r")
-				plt.add_point(Cy, "Cy", "g")
-				plt.add_point(Cz, "Cz", "b")
+		# 		# plt.add_point(Mx, "Mx")
 
-				# plt.add_point(Px, "Px", "pink")
+		# 		plt.add_point(self.Cx, "Cx", "r")
+		# 		plt.add_point(Cy, "Cy", "g")
+		# 		plt.add_point(Cz, "Cz", "b")
 
-				# plt.add_point(Ny, "Ny")
-				# plt.add_point(Nz, "Nz")
+		# 		# plt.add_point(Px, "Px", "pink")
 
-				plt.add_point(Ap, "Ap", "magenta")
-				plt.add_point(Bp, "Bp", "magenta")
-				plt.add_point(Pp, "Pp", "magenta")
+		# 		# plt.add_point(Ny, "Ny")
+		# 		# plt.add_point(Nz, "Nz")
+
+		# 		plt.add_point(self.Ap, "self.Ap", "magenta")
+		# 		plt.add_point(self.Bp, "self.Bp", "magenta")
+		# 		plt.add_point(Pp, "Pp", "magenta")
+
+	def plot_sta(self, pth=None) :
+		from goto.globe.plot import GlobePlotMpl
+
+		w = math.copysign(1.0, self.sector)
+		k = -1.0 if abs(self.sector) > math.pi else 1.0
+
+		with GlobePlotMpl(pth) as plt :
+			plt.add_point(self.Ax, "Ax", "orange")
+			plt.add_point(self.Ap, "Ap", "r")
+			plt.add_point(self.Bx, "Bx", "cyan")
+			plt.add_point(self.Bp, "Bp", "b")
+			
+			plt.add_point(self.Cx, "Cx", "lime")
+			plt.add_point(self.Cz, "Cz", "purple")
+
+			plt.add_point(self.Mx, "Mx", "magenta")
+			plt.add_point(self.Px, "Px", "r")
+			plt.add_circle(self.Cx, self.Ax, "yellow")
+			plt.add_signed_arc(self.Ax, self.Bx, self.Cx, w)
+
 
 
 if __name__ == '__main__' :

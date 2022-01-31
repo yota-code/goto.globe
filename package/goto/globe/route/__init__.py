@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import math
 import collections
-from os import wait4
+import math
+import struct
 
 from cc_pathlib import Path
 
@@ -13,14 +13,14 @@ from goto.globe.arc import ArcSegment, ArcCorridor
 
 from goto.globe.plot import GlobePlotGps
 
-
 """
 skeleton: first version of the route, contains GOTO instructions, as well as 3 and 4 points turns. It can be seen as control points of the trajectory
 centerline: second version of the route, contains only lines and arcs. It shapes the corridor itself
 effective: the last version of the route, with added JOINT, used to compute maximal admissible speeds
 """
 
-earth_radius = 6371008.7714
+# earth_radius = 6371008.7714
+earth_radius = 6371007.181
 # openstreetmap earth radius = 6378137.0
 
 def interpolate(x, a, b) :
@@ -31,7 +31,13 @@ WskPt = collections.namedtuple('WskPt', ['verb', 'pos', 'radius', 'alt', 'spd', 
 def read_wskpt(verb, lat, lon, radius, alt, spd, width) :
 	return WskPt(verb, Blip(lat, lon).as_vector, radius, alt, spd, width)
 
-class RouteCut() :
+def kt_to_ms(x) :
+	return (1852.0 * (x) / 3600.0)
+
+def ft_to_m(x) :
+	return ((x) * 0.3048)
+
+class RoutePrepare() :
 	def __init__(self, lat_orig=0.0, lon_orig=0.0) :
 		# load
 
@@ -50,16 +56,17 @@ class RouteCut() :
 			Path("1_centerline.json").save(self.r_centerline)
 			self.plot_segment(self.r_centerline, Path("1_centerline.plot.json"))
 
-			self.plot_corridor( Path("3_corridor.plot.json") )
+			self.plot_corridor(Path("3_corridor.plot.json"))
 
-		if centerline_pth.is_file() :
 			self.r_effective = self.pass_2(self.r_centerline)
-			Path("2_effective.json").save(self.r_centerline)
-		else :
-			self.r_effective = effective_pth.load()
-		self.plot_segment(self.r_effective, Path("2_effective.plot.json"))
+			Path("2_effective.json").save(self.r_effective)
 
-		self.to_wsk_qnd_point(self.r_effective)
+			self.plot_segment(self.r_effective, Path("2_effective.plot.json"))
+
+			self.to_lang_c(self.r_effective)
+			self.to_binary(self.r_effective)
+
+			self.plot_route(self.r_centerline, Path("1_route.txt"))
 
 	def plot_corridor(self, route_pth) :
 		p_prev = None
@@ -81,6 +88,7 @@ class RouteCut() :
 			for i, line in enumerate(r_lst) :
 				p_curr = read_wskpt(* line)
 				if p_prev != None :
+					print(p_curr.radius, p_curr.verb)
 					if p_curr.radius == 0.0 or p_curr.verb not in ['GOTO', 'JOINT'] :
 						s = LineCorridor(p_prev.pos, p_curr.pos, p_prev.width / earth_radius, p_curr.width / earth_radius)
 					else :
@@ -88,6 +96,42 @@ class RouteCut() :
 					plt.add_segment(s)
 				plt.add_point(p_curr.pos, f"{i}.{p_curr.verb}")
 				p_prev = p_curr
+
+	def plot_route(self, r_lst, route_pth) :
+
+		p_lst = list()
+		for i, line in enumerate(r_lst) :
+			p_lst.append( f"		{{{i+3}}}," )
+		p_txt = '\n'.join(p_lst)
+		w_lst = list()
+		for i, line in enumerate(r_lst) :
+			verb, lat, lon, radius, alt, spd, width = line
+			w_lst.append(f"""	-- Table: {{{i}}}
+	{{
+		["alt"]={alt},
+		["lat"]={lat},
+		["lon"]={lon},
+		["corridor_radius"]={width},
+		["leg_radius"]={radius},
+		["large_arc"]=0,
+		["name"]="{i}",
+		["speed"]={spd},
+	}},""")
+		w_txt = '\n'.join(w_lst)
+
+		route_txt = f"""return {{
+	-- Table: {{1}}
+	{{
+		{{2}},
+	}},
+	-- Table: {{2}}
+	{{
+{p_txt}
+	}},
+{w_txt}
+}}
+"""
+		route_pth.write_text(route_txt)
 
 	def pass_1(self, r_prev) :
 		r_next = list()
@@ -102,8 +146,11 @@ class RouteCut() :
 				C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
 				r = radius / earth_radius
 				E, F, BEp, BFp, w = self.turn_3pt(A, B, C, r)
-				r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(BEp, a_lst[i-1], a_lst[i]), spd, width])
-				r_next.append(["GOTO", F.lat, F.lon, w*radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
+				# y a une erreur
+				# r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(BEp, a_lst[i-1], a_lst[i]), spd, width])
+				# r_next.append(["GOTO", F.lat, F.lon, w*radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
+				r_next.append(["GOTO", E.lat, E.lon, 0, alt, spd, width])
+				r_next.append(["GOTO", F.lat, F.lon, w*radius, alt, spd, width])
 				print(r_next[-2:])
 			elif verb == '__TURN_4PT_1__' :
 				A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
@@ -111,11 +158,16 @@ class RouteCut() :
 				C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
 				D = Blip(r_prev[i+2][1], r_prev[i+2][2]).as_vector
 				E, F, G, VFa, AEp, BFp, CGp = self.turn_4pt(A, B, C, D)
-				r_next.append(["GOTO", E.lat, E.lon, 0.0, interpolate(AEp, a_lst[i-1], a_lst[i+1]), spd, width])
-				r_next.append(["GOTO", F.lat, F.lon, VFa * earth_radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
-				r_next.append(["GOTO", G.lat, G.lon, VFa * earth_radius, interpolate(CGp, a_lst[i+1], a_lst[i+2]), spd, width])
+				# r_next.append(["GOTO", E.lat, E.lon, 0.0, interpolate(AEp, a_lst[i-1], a_lst[i+1]), spd, width])
+				# r_next.append(["GOTO", F.lat, F.lon, VFa * earth_radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
+				# r_next.append(["GOTO", G.lat, G.lon, VFa * earth_radius, interpolate(CGp, a_lst[i+1], a_lst[i+2]), spd, width])
+				r_next.append(["GOTO", E.lat, E.lon, 0.0, alt, spd, width])
+				r_next.append(["GOTO", F.lat, F.lon, VFa * earth_radius, alt, spd, width])
+				r_next.append(["GOTO", G.lat, G.lon, VFa * earth_radius, alt, spd, width])
 			elif verb == '__TURN_4PT_2__' :
 				pass # this point was treated previously with __TURN_4PT_1__
+			elif verb == '__LOOP__' :
+				pass # we are looping, the last point is not used
 			else :
 				r_next.append(line)
 		
@@ -131,8 +183,13 @@ class RouteCut() :
 				B = Blip(lat, lon).as_vector
 				C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
 				E, F, VEa, AEp = self.joint(A, B, C, r_prev[i-1][6], r_prev[i][6], r_prev[i+1][6], 400.0)
-				r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
-				r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+				if abs(VEa) < 0.5 :
+					# r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+					# r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+					r_next.append(["GOTO", E.lat, E.lon, 0, alt, spd, width])
+					r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, alt, spd, width])
+				else :
+					r_next.append(line)
 			else :
 				r_next.append(line)
 		return r_next
@@ -232,17 +289,46 @@ class RouteCut() :
 
 		return Blip.from_vector(E), Blip.from_vector(F), VEa, AEp
 
-	def to_wsk_qnd_point(self, r_lst) :
+	def to_lang_c(self, r_lst) :
+		"""
+			UpmvBlip_S point;
+			float radius;
+			bool is_large_arc;
+			float altitude;
+			float speed;
+			float corridor_width;
+			float corridor_height;
+		"""
 		w_lst = [
-			"wsk_qnd_point_T wsk_qnd_line_arr[wsk_qnd_line_LEN] = {",
+			'#include "fctext/routehandler_mod.h"',
+			"",
+			"#define kt_to_ms(x) (1852.0 * (x) / 3600.0)",
+			"#define ft_to_m(x) ((x) * 0.3048)",
+			"",
+			"rte_route_C rte_main = {",
+			f"\t{len(r_lst)}, // length",
+			"\ttrue, // is_circular",
+			"\t0, // cursor",
+			"\t0, // checksum",
+			"\t{",
+			"\t\t// (lat, lon), radius, is_large_arc, altitude, speed, corridor_width, corridor_height",
 		]
 		for verb, lat, lon, radius, alt, spd, width in r_lst :
 			print(verb, lat, lon, radius, alt, spd, width)
 			verb_id = 0 if radius == 0.0 else 1
-			w_lst.append('\t' + str([verb_id, [lat, lon], radius, alt, spd]).replace('[', '{').replace(']', '}') + ',')
-		w_lst.append("};")
+			w_lst.append(f"\t\t{{ {{{lat}, {lon}}}, {radius}, false, ft_to_m({alt}), kt_to_ms({spd}), {width}, {width} }},")
+		w_lst.append("\t}\n};")
 		w_txt = '\n'.join(w_lst)
-		Path("4_wsk_qnd.c").write_text(w_txt)
+		Path("route.c").write_text(w_txt)
 
-if __name__ == "__main__" :
-	u = RouteCut(43.436667, 5.215)
+	def to_binary(self, r_lst, total_len=256) :
+		header_sti = struct.Struct('ibii')
+		waypoint_sti = struct.Struct('ddfbffff')
+		b_lst = list()
+		b_lst.append( header_sti.pack(len(r_lst), True, 0, 0) )
+		for verb, lat, lon, radius, alt, spd, width in r_lst :
+			b_lst.append( waypoint_sti.pack(lat, lon, radius, False, ft_to_m(alt), kt_to_ms(spd), width, width) )
+		for i in range(len(r_lst), total_len) :
+			b_lst.append( waypoint_sti.pack(* ([0,] * 8)))
+		Path("route.bin").write_bytes(b''.join(b_lst))
+	
