@@ -1,4 +1,6 @@
 #include <tgmath.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "globe_threed.h"
 
@@ -23,14 +25,14 @@ g3d_vec_T g3d_blip_to_vec(g3d_blip_T b) {
 	sincos(theta, & sin_theta, & cos_theta);
 	sincos(phi, & sin_phi, & cos_phi)
 
-	g3d_vec_T v = {
+	g3d_vec_T u = {
 		sin_theta * cos_phi,
 		sin_theta * sin_phi,
 		cos_theta,
 		true
 	};
 
-	return v;
+	return u;
 
 }
 
@@ -148,4 +150,9 @@ g3d_vec_T g3d_normalized(g3d_vec_T u) {
 
 	return u;
 
+}
+
+void g3d_print_vec(g3d_vec_T u) {
+	g3d_blip_T b = g3d_vec_to_blip(u);
+	printf("vec(x=%f, y=%f, z=%f) blip(lat=%f, lon=%f)", u.x, u.y, u.z, b.lat, b.lon);
 }

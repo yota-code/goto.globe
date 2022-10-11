@@ -13,10 +13,9 @@ gbl_arc_T gbl_arc_from_radius(gbl_arc_T * self, g3d_vec_T * A, g3d_vec_T * B, do
 	g3d_vec_T Qx = g3d_normalized(g3d_add(A, B));
 	g3d_vec_T Qy = g3d_lambda_product(g3d_normalzed(g3d_cross_product(B, A)), way);
 
-	double r = cos(radius_eff) / g3d_scalar_product(Ax, Qx);
-	double t = acos(G3D_BOUND(r, -1.0, 1.0));
+	double p = acos(G3D_BOUND(cos(radius_eff) / g3d_scalar_product(Ax, Qx), -1.0, 1.0));
 
-	g3d_vec_T Vx = g3d_composed(Qx, Qy, t);
+	g3d_vec_T Vx = g3d_composed(Qx, Qy, p);
 
 	gbl_arc_T u = {
 		
