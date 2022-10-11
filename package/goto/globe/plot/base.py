@@ -11,9 +11,8 @@ import geometrik.threed as g3d
 class GlobePlot__base__() :
 
 	def add_circle(self, Cx, radius) :
-
 		if isinstance(radius, float) :
-			Py, Pz = g3d.Plane.frame_optimal(Cx)
+			Py, Pz = g3d.Vector.frame(Cx)
 			Px = g3d.Vector.compose(Cx, Py, radius)
 		else :
 			Px = radius

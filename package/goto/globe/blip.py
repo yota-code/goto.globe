@@ -12,6 +12,9 @@ class Blip() :
 		self.lat, self.lon = lat, lon
 
 	def __repr__(self) :
+		return f'Blip({self.lat}, {self.lon})'
+
+	def __str__(self) :
 		return f'Blip({self.lat}, {self.lon}) / {self.as_vector}'
 
 	@staticmethod
@@ -44,7 +47,9 @@ class Blip() :
 		)
 
 		# the vector must be on the unit sphere
-		assert( math.isclose(v.norm, 1.0) )
+		if not math.isclose(v.norm, 1.0) :
+			print(f"WARNING: norm={v.norm} ({theta} {phi})")
+		# assert( math.isclose(v.norm, 1.0) )
 
 		return v
 

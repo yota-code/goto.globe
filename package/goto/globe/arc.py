@@ -8,7 +8,7 @@ import geometrik.threed as g3d
 
 class ArcSegment() :
 
-	def __init__(self, A: g3d.Vector, B: g3d.Vector, point_or_radius: typing.Union[float, g3d.Vector]) :
+	def __init__(self, A:g3d.Vector, B:g3d.Vector, point_or_radius:typing.Union[float, g3d.Vector], is_large_arc:bool=False) :
 
 		self.Ax = A.normalized()
 		self.Bx = B.normalized()
@@ -16,9 +16,14 @@ class ArcSegment() :
 		self.angle_ab = self.Ax.angle_to(self.Bx) # distance between A and B
 
 		if isinstance(point_or_radius, float) :
-			self.__init__from_radius(point_or_radius)
+			print("init from radius")
+			self.__init__from_radius(point_or_radius, is_large_arc)
 		elif isinstance(point_or_radius, g3d.Vector) :
+			print("init from center point")
 			self.__init__from_point(point_or_radius)
+		else :
+			print("init can't be done with: ", type(point_or_radius))
+			raise ValueError
 
 		self.Ay = self.way * (self.Ax @ self.Vx).normalized()
 		self.Az = self.Ax @ self.Ay
@@ -35,7 +40,7 @@ class ArcSegment() :
 		self.Vz = self.Ay
 		self.Vy = -self.way * (self.Vz @ self.Vx)
 
-	def __init__from_radius(self, radius: float) :
+	def __init__from_radius(self, radius: float, is_large_arc: bool) :
 		radius_min = self.angle_ab / 2
 		radius_max = math.pi / 2
 		

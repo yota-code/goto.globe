@@ -3,6 +3,7 @@
 import collections
 import math
 import struct
+import zlib
 
 from cc_pathlib import Path
 
@@ -26,10 +27,12 @@ earth_radius = 6371007.181
 def interpolate(x, a, b) :
 	return a*(1.0 - x) + b*x
 
-WskPt = collections.namedtuple('WskPt', ['verb', 'pos', 'radius', 'alt', 'spd', 'width'])
+WskPt = collections.namedtuple('WskPt', ['verb', 'pos', 'radius', 'is_large_arc', 'alt', 'spd', 'width', 'attr'])
 
-def read_wskpt(verb, lat, lon, radius, alt, spd, width) :
-	return WskPt(verb, Blip(lat, lon).as_vector, radius, alt, spd, width)
+attr_enum = ['UNSPECIFIED', 'STOP', 'PARKING', 'TAXIWAY', 'GOAROUND', 'FLIGHT', 'DESCEND']
+
+def read_wskpt(verb, lat, lon, radius, is_large_arc, alt, spd, width, attr) :
+	return WskPt(verb, Blip(lat, lon).as_vector, radius, is_large_arc, alt, spd, width, attr)
 
 def kt_to_ms(x) :
 	return (1852.0 * (x) / 3600.0)
@@ -45,6 +48,7 @@ class RoutePrepare() :
 		effective_pth = Path("2_effective.json")
 
 		if Path("0_skeleton.json").is_file() :
+			# if not Path("2_effective.json").is_file() :
 			self.r_skeleton = Path("0_skeleton.json").load()
 			for line in self.r_skeleton :
 				line[1] += lat_orig
@@ -60,13 +64,17 @@ class RoutePrepare() :
 
 			self.r_effective = self.pass_2(self.r_centerline)
 			Path("2_effective.json").save(self.r_effective)
+			# else :
+			#	print("\x1b[31mcached !\x1b[0m")
+			#	self.r_effective = Path("2_effective.json").load()
 
 			self.plot_segment(self.r_effective, Path("2_effective.plot.json"))
 
 			self.to_lang_c(self.r_effective)
 			self.to_binary(self.r_effective)
+			self.to_lua(self.r_effective)
 
-			self.plot_route(self.r_centerline, Path("1_route.txt"))
+			#self.plot_route(self.r_centerline, Path("1_route.txt"))
 
 	def plot_corridor(self, route_pth) :
 		p_prev = None
@@ -97,41 +105,7 @@ class RoutePrepare() :
 				plt.add_point(p_curr.pos, f"{i}.{p_curr.verb}")
 				p_prev = p_curr
 
-	def plot_route(self, r_lst, route_pth) :
-
-		p_lst = list()
-		for i, line in enumerate(r_lst) :
-			p_lst.append( f"		{{{i+3}}}," )
-		p_txt = '\n'.join(p_lst)
-		w_lst = list()
-		for i, line in enumerate(r_lst) :
-			verb, lat, lon, radius, alt, spd, width = line
-			w_lst.append(f"""	-- Table: {{{i}}}
-	{{
-		["alt"]={alt},
-		["lat"]={lat},
-		["lon"]={lon},
-		["corridor_radius"]={width},
-		["leg_radius"]={radius},
-		["large_arc"]=0,
-		["name"]="{i}",
-		["speed"]={spd},
-	}},""")
-		w_txt = '\n'.join(w_lst)
-
-		route_txt = f"""return {{
-	-- Table: {{1}}
-	{{
-		{{2}},
-	}},
-	-- Table: {{2}}
-	{{
-{p_txt}
-	}},
-{w_txt}
-}}
-"""
-		route_pth.write_text(route_txt)
+		# route_pth.write_text(route_txt)
 
 	def pass_1(self, r_prev) :
 		r_next = list()
@@ -139,7 +113,7 @@ class RoutePrepare() :
 
 		for i, line in enumerate(r_prev) :
 			print("pass_1 ::", line)
-			verb, lat, lon, radius, alt, spd, width = line
+			verb, lat, lon, radius, is_large_arc, alt, spd, width, attr = line
 			if verb == '__TURN_3PT__' :
 				A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
 				B = Blip(lat, lon).as_vector
@@ -149,8 +123,8 @@ class RoutePrepare() :
 				# y a une erreur
 				# r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(BEp, a_lst[i-1], a_lst[i]), spd, width])
 				# r_next.append(["GOTO", F.lat, F.lon, w*radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
-				r_next.append(["GOTO", E.lat, E.lon, 0, alt, spd, width])
-				r_next.append(["GOTO", F.lat, F.lon, w*radius, alt, spd, width])
+				r_next.append(["GOTO", E.lat, E.lon, 0, False, alt, spd, width, attr])
+				r_next.append(["GOTO", F.lat, F.lon, w*radius, is_large_arc, alt, spd, width, attr])
 				print(r_next[-2:])
 			elif verb == '__TURN_4PT_1__' :
 				A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
@@ -161,9 +135,9 @@ class RoutePrepare() :
 				# r_next.append(["GOTO", E.lat, E.lon, 0.0, interpolate(AEp, a_lst[i-1], a_lst[i+1]), spd, width])
 				# r_next.append(["GOTO", F.lat, F.lon, VFa * earth_radius, interpolate(BFp, a_lst[i], a_lst[i+1]), spd, width])
 				# r_next.append(["GOTO", G.lat, G.lon, VFa * earth_radius, interpolate(CGp, a_lst[i+1], a_lst[i+2]), spd, width])
-				r_next.append(["GOTO", E.lat, E.lon, 0.0, alt, spd, width])
-				r_next.append(["GOTO", F.lat, F.lon, VFa * earth_radius, alt, spd, width])
-				r_next.append(["GOTO", G.lat, G.lon, VFa * earth_radius, alt, spd, width])
+				r_next.append(["GOTO", E.lat, E.lon, 0.0, False, alt, spd, width, attr])
+				r_next.append(["GOTO", F.lat, F.lon, VFa * earth_radius, False, alt, spd, width, attr])
+				r_next.append(["GOTO", G.lat, G.lon, VFa * earth_radius, False, alt, spd, width, attr])
 			elif verb == '__TURN_4PT_2__' :
 				pass # this point was treated previously with __TURN_4PT_1__
 			elif verb == '__LOOP__' :
@@ -177,21 +151,22 @@ class RoutePrepare() :
 		r_next = list()
 		a_lst = [ line[4] for line in r_prev ]
 		for i, line in enumerate(r_prev) :
-			verb, lat, lon, radius, alt, spd, width = line
-			if verb == 'GOTO' and radius == 0.0 and r_prev[i+1][0] == 'GOTO' and r_prev[i+1][3] == 0.0 :
-				A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
-				B = Blip(lat, lon).as_vector
-				C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
-				E, F, VEa, AEp = self.joint(A, B, C, r_prev[i-1][6], r_prev[i][6], r_prev[i+1][6], 400.0)
-				if abs(VEa) < 0.5 :
-					# r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
-					# r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
-					r_next.append(["GOTO", E.lat, E.lon, 0, alt, spd, width])
-					r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, alt, spd, width])
-				else :
-					r_next.append(line)
-			else :
-				r_next.append(line)
+			verb, lat, lon, radius, is_large_arc, alt, spd, width, attr = line
+			# TODO: le joint automatique est fragile... dans le cas où les segments sont alignés, il plante
+			# if verb == 'GOTO' and radius == 0.0 and r_prev[i+1][0] == 'GOTO' and r_prev[i+1][3] == 0.0 :
+			# 	A = Blip(r_prev[i-1][1], r_prev[i-1][2]).as_vector
+			# 	B = Blip(lat, lon).as_vector
+			# 	C = Blip(r_prev[i+1][1], r_prev[i+1][2]).as_vector
+			# 	E, F, VEa, AEp = self.joint(A, B, C, r_prev[i-1][6], r_prev[i][6], r_prev[i+1][6], 400.0)
+			# 	if abs(VEa) < 0.5 :
+			# 		# r_next.append(["GOTO", E.lat, E.lon, 0, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+			# 		# r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, interpolate(AEp, a_lst[i], a_lst[i+1]), spd, width])
+			# 		r_next.append(["GOTO", E.lat, E.lon, 0, False, alt, spd, width])
+			# 		r_next.append(["JOINT", F.lat, F.lon, VEa * earth_radius, False, alt, spd, width])
+			# 	else :
+			# 		r_next.append(line)
+			# else :
+			r_next.append(line)
 		return r_next
 
 	def turn_3pt(self, A, B, C, d) :
@@ -290,20 +265,12 @@ class RoutePrepare() :
 		return Blip.from_vector(E), Blip.from_vector(F), VEa, AEp
 
 	def to_lang_c(self, r_lst) :
-		"""
-			UpmvBlip_S point;
-			float radius;
-			bool is_large_arc;
-			float altitude;
-			float speed;
-			float corridor_width;
-			float corridor_height;
-		"""
+		
 		w_lst = [
-			'#include "fctext/routehandler_mod.h"',
+			'#include "fctext/routehandler_mod.h" TUTU',
 			"",
-			"#define kt_to_ms(x) (1852.0 * (x) / 3600.0)",
-			"#define ft_to_m(x) ((x) * 0.3048)",
+			"#define kt_to_ms(x) (1852.0 * ((double)(x)) / 3600.0)",
+			"#define ft_to_m(x) (((double)(x)) * 0.3048)",
 			"",
 			"rte_route_C rte_main = {",
 			f"\t{len(r_lst)}, // length",
@@ -311,24 +278,94 @@ class RoutePrepare() :
 			"\t0, // cursor",
 			"\t0, // checksum",
 			"\t{",
-			"\t\t// (lat, lon), radius, is_large_arc, altitude, speed, corridor_width, corridor_height",
+			"\t\t// (lat, lon), leg_radius, is_leg_large_arc, altitude, altitude_mode, speed, speed_mode, heading, heading_mode, corridor_width, corridor_height, ground_elevation, padding",
 		]
-		for verb, lat, lon, radius, alt, spd, width in r_lst :
-			print(verb, lat, lon, radius, alt, spd, width)
-			verb_id = 0 if radius == 0.0 else 1
-			w_lst.append(f"\t\t{{ {{{lat}, {lon}}}, {radius}, false, ft_to_m({alt}), kt_to_ms({spd}), {width}, {width} }},")
+		for verb, lat, lon, radius, is_large_arc, alt, spd, width, attr in r_lst :
+			print(">>>", verb, lat, lon, radius, is_large_arc, alt, spd, width)
+			w_lst.append(f"\t\t{{ {{{lat}, {lon}}}, {radius}, {is_large_arc}, ft_to_m({alt}), {1 if alt < 300 else 2}, kt_to_ms({spd}), {1 if spd < 45 else 2}, 0.0, 0, {width}, {width}, {37 if alt < 100 else 13}, -1 }},")
 		w_lst.append("\t}\n};")
 		w_txt = '\n'.join(w_lst)
 		Path("route.c").write_text(w_txt)
 
 	def to_binary(self, r_lst, total_len=256) :
-		header_sti = struct.Struct('ibii')
-		waypoint_sti = struct.Struct('ddfbffff')
+		"""
+			typedef struct {
+				UpmvBlip_S point;
+				float leg_radius;
+				bool is_leg_large_arc;
+				float altitude;
+				UpmvRouteAltitude_E altitude_typ;
+				float speed;
+				UpmvRouteSpeed_E speed_typ;
+				float heading;
+				UpmvRouteHeading_E heading_typ;
+				float corridor_width;
+				float corridor_height;
+				float terrain_elevation;
+				float geoid_elevation;
+				UpmvRouteAttr_E attr;
+				bool stop_at;
+			} UpmvRoutePiece_S;
+		"""
+
+		header_sti = struct.Struct('ibiI')
+		waypoint_sti = struct.Struct('ddfbfifififfffii')
+
+
 		b_lst = list()
-		b_lst.append( header_sti.pack(len(r_lst), True, 0, 0) )
-		for verb, lat, lon, radius, alt, spd, width in r_lst :
-			b_lst.append( waypoint_sti.pack(lat, lon, radius, False, ft_to_m(alt), kt_to_ms(spd), width, width) )
+		for verb, lat, lon, radius, is_large_arc, alt, spd, width, attr in r_lst :
+			b_lst.append(waypoint_sti.pack(
+				lat,
+				lon,
+				radius,
+				is_large_arc,
+				ft_to_m(alt),
+				1 if alt < 300 else 2,
+				kt_to_ms(spd),
+				1 if spd < 45 else 2,
+				0.0, 0, width, width, 13.0, 17.0,
+				attr_enum.index(attr), spd == 0.0
+			))
 		for i in range(len(r_lst), total_len) :
-			b_lst.append( waypoint_sti.pack(* ([0,] * 8)))
-		Path("route.bin").write_bytes(b''.join(b_lst))
+			b_lst.append(waypoint_sti.pack(* ([0,] * 16)))
+		
+		b_data = b''.join(b_lst)
+
+		print(waypoint_sti.size)
+
+		Path("route.bin").write_bytes( header_sti.pack(len(r_lst), False, 0, zlib.crc32(b_data) & 0xffffffff)  + b_data)
 	
+	def to_lua(self, r_lst) :
+		p_lst = list()
+		for i, line in enumerate(r_lst) :
+			p_lst.append( f"		{{{i+3}}}," )
+		p_txt = '\n'.join(p_lst)
+		w_lst = list()
+		for i, line in enumerate(r_lst) :
+			verb, lat, lon, radius, is_large_arc, alt, spd, width, attr = line
+			w_lst.append(f"""	-- Table: {{{i}}}
+	{{
+		["alt"]={alt},
+		["lat"]={lat},
+		["lon"]={lon},
+		["corridor_radius"]={width},
+		["leg_radius"]={radius},
+		["large_arc"]={1 if is_large_arc else 0},
+		["name"]="{i}",
+		["speed"]={spd},
+	}},""")
+		w_txt = '\n'.join(w_lst)
+
+		route_txt = f"""return {{
+	-- Table: {{1}}
+	{{
+		{{2}},
+	}},
+	-- Table: {{2}}
+	{{
+{p_txt}
+	}},
+{w_txt}
+}}
+"""
+		Path("route.lua").save('\n'.join(w_lst))
