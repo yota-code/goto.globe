@@ -9,8 +9,7 @@ import geometrik.threed as g3d
 
 e = 6371008.7714
 
-
-DEPRECATED ?
+# 3 point creation to be merged from arc.py
 
 class SegmentArc() :
 
@@ -59,7 +58,7 @@ class SegmentArc() :
 		Qy = (Bx @ Ax).normalized() # Qy vers la droite
 		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
 		
-		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0))
+		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0)) # TODO: check bound !
 		
 		Cx = g3d.Vector.compose(Qx, Qy, w * k * m)
 		Cz = Qz
@@ -74,8 +73,9 @@ class SegmentArc() :
 		# sector = ( math.tau - Ay.angle_to(By, Cx) ) if is_large_arc else ( Ay.angle_to(By, Cx) )
 		# sector = k * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
 		sector = -1.0 * k * w * ((math.tau if self.is_large_arc else 0.0) - Ay.angle_to(By))
+		length = sector * math.sin(self.aperture) * e
 
-		self.Cx, self.Qz, self.sector = Cx, Qz, sector
+		self.Cx, self.Qz, self.sector, self.length = Cx, Qz, sector, length
 
 		if self.debug :
 			print(f"Ax = {Blip.from_vector(self.Ax)}")
@@ -85,6 +85,7 @@ class SegmentArc() :
 			print(f"Qz = {Blip.from_vector(Qz)}")
 			print(f"Cx = {Blip.from_vector(Cx)}")
 			print(f"m={m} k={k} w={w}")
+			print(f"sector={sector} length={length}")
 			#self.plot_def()
 
 	def plot_def(self, pth=None) :
@@ -180,6 +181,9 @@ class SegmentArc() :
 
 		if self.debug :
 			print(f"w={w} k={k}")
+			print(f"Cx={Blip.from_vector(self.Cx)}")
+			print(f"Cy={Blip.from_vector(self.Cy)}")
+			print(f"Cz={Blip.from_vector(self.Cz)}")
 			print(f"track = {math.degrees(track)}")
 			print(f"Px = {Blip.from_vector(self.Px)}")
 			print(f"Aa = {self.Aa} Ba = {self.Ba} ... Pa = {self.Pa}")
@@ -270,9 +274,9 @@ if __name__ == '__main__' :
 	# #M = Blip(43.43858630342856, 5.226460832953308)
 	# # u = SegmentArc(A, B, -2500000.0, False)
 	# # u = SegmentArc(A, B, 2500000.0, False)
-	u = SegmentArc(B, A, -3500000.0, True, True).compute_sta(M)
-	u = SegmentArc(B, A, -3500000.0, False, True).compute_sta(M)
-	u = SegmentArc(B, A, 3500000.0, True, True).compute_sta(M)
+	#u = SegmentArc(B, A, -3500000.0, True, True).compute_sta(M)
+	#u = SegmentArc(B, A, -3500000.0, False, True).compute_sta(M)
+	#u = SegmentArc(B, A, 3500000.0, True, True).compute_sta(M)
 	u = SegmentArc(B, A, 3500000.0, False, True).compute_sta(M)
 	#u = SegmentArc(A, B, 308.5912, False).compute_sta(M)
 	# u = SegmentArc(A, B, -2500000.0, True)

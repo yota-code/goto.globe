@@ -82,3 +82,6 @@ class Blip() :
 
 
 
+if __name__ == '__main__' :
+	u = Blip(0.0, 0.0)
+	print(u)

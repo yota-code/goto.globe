@@ -6,6 +6,8 @@ import typing
 
 import geometrik.threed as g3d
 
+DEPRECATED ? see segment/arc.py
+
 class ArcSegment() :
 
 	def __init__(self, A:g3d.Vector, B:g3d.Vector, point_or_radius:typing.Union[float, g3d.Vector], is_large_arc:bool=False) :
@@ -31,6 +33,7 @@ class ArcSegment() :
 		self.By = self.way * (self.Bx @ self.Vx).normalized()
 		self.Bz = self.Bx @ self.By
 
+		# TODO : erroneous for large arcs
 		self.aperture_ab = self.Ay.angle_to(self.By) # angle covered by the arc
 		self.length = self.aperture_ab * math.sin(self.radius) # geodesic distance
 

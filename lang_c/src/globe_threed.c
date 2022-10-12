@@ -1,6 +1,7 @@
-#include <tgmath.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <tgmath.h>
 
 #include "globe_threed.h"
 
@@ -20,10 +21,11 @@ g3d_vec_T g3d_blip_to_vec(g3d_blip_T b) {
 	double theta = (M_PI / 2) - G3D_TO_RADIANS(b.lat);
 	double phi = G3D_TO_RADIANS(b.lon);
 
-	double sin_theta, cos_theta, sin_phi, cos_phi;
+	double sin_theta = sin(theta);
+	double cos_theta = cos(theta);
 
-	sincos(theta, & sin_theta, & cos_theta);
-	sincos(phi, & sin_phi, & cos_phi)
+	double sin_phi = sin(phi);
+	double cos_phi = cos(phi);
 
 	g3d_vec_T u = {
 		sin_theta * cos_phi,
@@ -42,8 +44,8 @@ g3d_blip_T g3d_vec_to_blip(g3d_vec_T v) {
 	double phi = atan2(v.y, v.x);
 
 	g3d_blip_T b = {
-		G3D_DEGREES(M_PI_2 - theta),
-		G3D_DEGREES(phi)
+		G3D_TO_DEGREES(M_PI_2 - theta),
+		G3D_TO_DEGREES(phi)
 	};
 
 	return b;
@@ -63,7 +65,7 @@ g3d_vec_T g3d_cross_product(g3d_vec_T u, g3d_vec_T v) {
 
 }
 
-double g3d_lambda_product(g3d_vec_T u, double lambda) {
+g3d_vec_T g3d_lambda_product(g3d_vec_T u, double lambda) {
 
 	g3d_vec_T w = {
 		u.x * lambda,
@@ -76,14 +78,14 @@ double g3d_lambda_product(g3d_vec_T u, double lambda) {
 
 }
 
-g3d_angle(g3d_vec_T u, g3d_vec_T v) {
+double g3d_angle(g3d_vec_T u, g3d_vec_T v) {
 	
 	double c = g3d_scalar_product(u, v) / (g3d_norm(u) * g3d_norm(v));
 	return acos(G3D_BOUND(c, -1.0, 1.0));
 	
 }
 
-g3d_angle_signed(g3d_vec_T u, g3d_vec_T v, g3d_vec_T w) {
+double g3d_angle_signed(g3d_vec_T u, g3d_vec_T v, g3d_vec_T w) {
 	
 	double c = g3d_scalar_product(u, v) / (g3d_norm(u) * g3d_norm(v));
 	double s = g3d_scalar_product(g3d_cross_product(u, v), w);
@@ -106,11 +108,11 @@ double g3d_norm_2(g3d_vec_T u) {
 
 double g3d_norm(g3d_vec_T u) {
 
-	return (u->is_unit) ? (1.0) : (sqrt(g3d_norm_2(u)));
+	return (u.is_unit) ? (1.0) : (sqrt(g3d_norm_2(u)));
 
 }
 
-double g3d_add(g3d_vec_T u, g3d_vec_T v) {
+g3d_vec_T g3d_add(g3d_vec_T u, g3d_vec_T v) {
 
 	g3d_vec_T w = {
 		u.x + v.x,
@@ -136,23 +138,18 @@ g3d_vec_T g3d_composed(g3d_vec_T Ux, g3d_vec_T Uy, double angle) {
 g3d_vec_T g3d_normalized(g3d_vec_T u) {
 
 	if (u.is_unit) {
-		return * u;
+		return u;
 	}
 
 	double n = g3d_norm(u);
 
-	g3d_vec_T u = {
+	g3d_vec_T w = {
 		u.x / n,
 		u.y / n,
 		u.z / n,
 		true
 	};
 
-	return u;
+	return w;
 
-}
-
-void g3d_print_vec(g3d_vec_T u) {
-	g3d_blip_T b = g3d_vec_to_blip(u);
-	printf("vec(x=%f, y=%f, z=%f) blip(lat=%f, lon=%f)", u.x, u.y, u.z, b.lat, b.lon);
 }
