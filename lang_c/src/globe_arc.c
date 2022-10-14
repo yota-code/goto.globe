@@ -2,6 +2,8 @@
 
 #include "globe_arc.h"
 
+// prefix is gbl_arc_
+
 gbl_arc_T gbl_arc_from_radius(g3d_vec_T A, g3d_vec_T B, double radius, bool is_large_arc) {
 
 	g3d_vec_T Ax = g3d_normalized(A);
