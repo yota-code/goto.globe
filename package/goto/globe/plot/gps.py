@@ -24,7 +24,6 @@ class GlobePlotGps(GlobePlot__base__) :
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback) :
-
 		point_lst = list()
 		for name, u in self.point_map.items() :
 			b = Blip.from_vector(u)

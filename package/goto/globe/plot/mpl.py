@@ -16,19 +16,19 @@ import geometrik.threed as g3d
 from .base import GlobePlot__base__
 
 class arrow_3d(matplotlib.patches.FancyArrowPatch):
-    def __init__(self, xs, ys, zs, *args, **kwargs):
-        matplotlib.patches.FancyArrowPatch.__init__(self, (0,0), (0,0), * args, ** kwargs)
-        self._verts3d = xs, ys, zs
+	def __init__(self, xs, ys, zs, *args, **kwargs):
+		matplotlib.patches.FancyArrowPatch.__init__(self, (0,0), (0,0), * args, ** kwargs)
+		self._verts3d = xs, ys, zs
 
-    def draw(self, renderer):
-        xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
-        matplotlib.patches.FancyArrowPatch.draw(self, renderer)
+	def do_3d_projection(self, renderer=None):
+		xs3d, ys3d, zs3d = self._verts3d
+		xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
+		self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+		return np.min(zs)
 
 class GlobePlotMpl(GlobePlot__base__) :
-	def __init__(self) :
-		pass
+	def __init__(self, pth=None) :
+		self.pth = pth
 
 	def __enter__(self) :
 
@@ -39,7 +39,10 @@ class GlobePlotMpl(GlobePlot__base__) :
 		sphere_y = np.outer(np.sin(u), np.sin(v))
 		sphere_z = np.outer(np.ones(np.size(u)), np.cos(v))
 
-		self.fig = plt.figure()
+		if self.pth is None :
+			self.fig = plt.figure()
+		else :
+			self.fig = plt.figure(figsize=(16, 16))
 
 		self.axe = self.fig.add_subplot(1, 1, 1, projection='3d')
 		self.axe.plot_surface(sphere_x, sphere_y, sphere_z, color='b', alpha=0.05)
@@ -84,9 +87,14 @@ class GlobePlotMpl(GlobePlot__base__) :
 		return C
 
 	def __exit__(self, exc_type, exc_value, traceback) :
-		plt.show()
+		self.axe.view_init(elev=20.0, azim=0.0)
+		if self.pth is None :
+			plt.show()
+		else :
+			plt.savefig(str(self.pth))
+		
 
-	def add_point(self, Ax, name, color='k') :		
+	def add_point(self, Ax, name, color='k') :
 		self.axe.add_artist(arrow_3d(
 			[0.0, Ax.x],
 			[0.0, Ax.y],
