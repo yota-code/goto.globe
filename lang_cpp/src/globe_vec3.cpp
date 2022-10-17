@@ -104,7 +104,7 @@ namespace globe {
 	}
 
 	double Vec3::norm() {
-		return (this->_is_unit) ? (1.0) : ( sqrt(this->norm2()) );
+		return (this->_is_unit) ? (1.0) : (sqrt(this->norm2()));
 	}
 
 	double Vec3::norm2() {

@@ -11,7 +11,7 @@ from goto.globe.plot import GlobePlotMpl
 def compute_circle(A, B, r) :
 	assert( r > 0 )
 
-	Ex = 
+	# Ex = 
 
 def compute_internal(A, B, r) :
 	# two point A and B, center of the circles of radius r
@@ -26,8 +26,8 @@ def compute_internal(A, B, r) :
 	
 	theta = math.asin(math.sin(r) / math.sin(psi))
 
-	P_pos = g3d.Plane( g3d.Vector.compose(Cz, Cy, - theta) )
-	P_neg = g3d.Plane( g3d.Vector.compose(Cz, Cy, theta) )
+	P_pos = g3d.Vector.compose(Cz, Cy, - theta)
+	P_neg = g3d.Vector.compose(Cz, Cy, theta)
 
 	return [
 		P_pos.project(A).normalized(),
@@ -48,8 +48,8 @@ def compute_external(A, B, r) :
 
 	theta = math.asin(math.sin(r) / math.sin(psi))
 
-	P_pos = g3d.Plane( g3d.Vector.compose(Cz, Cx, - theta) )
-	P_neg = g3d.Plane( g3d.Vector.compose(Cz, Cx, theta) )
+	P_pos = g3d.Vector.compose(Cz, Cx, - theta)
+	P_neg = g3d.Vector.compose(Cz, Cx, theta)
 
 	return [
 		P_pos.project(A).normalized(),
