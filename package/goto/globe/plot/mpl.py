@@ -94,7 +94,7 @@ class GlobePlotMpl(GlobePlot__base__) :
 			plt.savefig(str(self.pth))
 		
 
-	def add_point(self, Ax, name, color='k') :		
+	def add_point(self, Ax, name, color='k') :
 		self.axe.add_artist(arrow_3d(
 			[0.0, Ax.x],
 			[0.0, Ax.y],
