@@ -139,7 +139,7 @@ class GlobePlotMpl(GlobePlot__base__) :
 		print(Ny, Nz)
 		p_lst = list()
 		for t in np.linspace(0.0, math.tau, 100) :
-			v = g3d.Vector.compose(Ny, Nz, t)
+			v = g3d.Vector.deflect(Ny, Nz, t)
 			p_lst.append(v.as_tuple)
 
 		self.axe.plot(
