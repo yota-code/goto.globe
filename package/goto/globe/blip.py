@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 
 import math
+import sympy
 
 import geometrik.threed as g3d
 
 class Blip() :
 	""" a blip is a point on the unit sphere (no orientation, no altitude, no earth radius, just a dot on the map) """
 
-	def __init__(self, lat, lon) :
+	def __init__(self, lat, lon, is_symbolic=False) :
 		# lat and lon are in degrees
 		self.lat, self.lon = lat, lon
+
+		self._is_symbolic = is_symbolic
+		self.m = sympy if is_symbolic else math
 
 	def __repr__(self) :
 		return f'Blip({self.lat}, {self.lon})'
@@ -34,16 +38,16 @@ class Blip() :
 	@property
 	def as_vector(self) :
 
-		theta =  (math.pi / 2) - math.radians( self.lat )
-		phi = math.radians( self.lon )
+		theta =  (self.m.pi / 2) - (self.m.pi * self.lat / 180)
+		phi = (self.m.pi * self.lon / 180)
 
-		sin_theta, cos_theta = math.sin(theta), math.cos(theta)
-		sin_phi, cos_phi = math.sin(phi), math.cos(phi)
+		sin_theta, cos_theta = self.m.sin(theta), self.m.cos(theta)
+		sin_phi, cos_phi = self.m.sin(phi), self.m.cos(phi)
 
 		v = g3d.Vector(
 			sin_theta * cos_phi,
 			sin_theta * sin_phi,
-			cos_theta, True
+			cos_theta, True, is_symbolic=self._is_symbolic
 		)
 
 		# the vector must be on the unit sphere
