@@ -32,14 +32,14 @@ class Dubincz_CLC() :
 		if self.Bw * self.Aw > 0 :
 			if self.AB < math.pi / 2 :
 				theta = self.Aw * self.theta_direct()
-				psi = math.pi - math.asin(math.sin(self.Ar) / math.sin(theta))
+				psi = math.asin(math.sin(self.Ar) / math.sin(theta)) + math.pi / 2
 
 			print(math.degrees(theta), math.degrees(psi))
 
-			Dy = self.Cy.deflect(self.Cx, psi)
-			Dz = self.Cz.deflect(-Dy, theta)
+			Dy = self.Cx.deflect(self.Cy, psi)
+			Dz = self.Cz.deflect(Dy, theta)
 
-			
+
 		with GlobePlotMpl() as gpl :
 			#gpl.add_point(self.Az, 'Az', 'r')
 			#gpl.add_point(self.Ay, 'Ay', 'r')
