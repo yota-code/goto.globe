@@ -136,7 +136,6 @@ class GlobePlotMpl(GlobePlot__base__) :
 	def add_great_circle(self, Nx, color='k'):
 		p = g3d.Plane(Nx)
 		Ny, Nz = p.frame()
-		print(Ny, Nz)
 		p_lst = list()
 		for t in np.linspace(0.0, math.tau, 100) :
 			v = g3d.Vector.deflect(Ny, Nz, t)

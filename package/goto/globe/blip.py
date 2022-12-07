@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+import numbers
 import sympy
 
 import geometrik.threed as g3d
@@ -12,8 +13,17 @@ class Blip() :
 		# lat and lon are in degrees
 		self.lat, self.lon = lat, lon
 
-		self._is_symbolic = is_symbolic
+		self._is_symbolic = self.is_symbolic
 		self.m = sympy if is_symbolic else math
+
+	@property
+	def is_symbolic(self) :
+		return not all(isinstance(i, numbers.Number) for i in self.as_tuple)
+
+	@property
+	def as_tuple(self) :
+		return self.lat, self.lon
+
 
 	def __repr__(self) :
 		return f'Blip({self.lat}, {self.lon})'
@@ -47,7 +57,7 @@ class Blip() :
 		v = g3d.Vector(
 			sin_theta * cos_phi,
 			sin_theta * sin_phi,
-			cos_theta, True, is_symbolic=self._is_symbolic
+			cos_theta, True
 		)
 
 		# the vector must be on the unit sphere
