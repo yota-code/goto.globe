@@ -32,13 +32,23 @@ class Dubincz_CLC() :
 		if self.Bw * self.Aw > 0 :
 			if self.AB < math.pi / 2 :
 				theta = self.Aw * self.theta_direct()
-				psi = math.asin(math.sin(self.Ar) / math.sin(theta)) + math.pi / 2
+				psi = self.Aw *  math.asin(math.sin(self.Ar) / math.sin(theta)) + math.pi / 2
+		else :
+			theta = self.Aw * self.theta_crossed()
+			psi = self.Aw *  math.asin(math.sin(self.Ar) / math.sin(theta)) + math.pi / 2
 
-			print(math.degrees(theta), math.degrees(psi))
+		Dy = self.Cx.deflect(self.Cy, psi)
+		Dz = self.Cz.deflect(Dy, theta)
 
-			Dy = self.Cx.deflect(self.Cy, psi)
-			Dz = self.Cz.deflect(Dy, theta)
+		E = self.Az.project_normal(Dz).normalized()
+		F = self.Bz.project_normal(Dz).normalized()
 
+		I = self.Az.deflect(self.Ay, self.Ar)
+		O = self.Bz.deflect(self.By, self.Br)
+
+		print(math.degrees(theta), math.degrees(psi))
+		print(self.Az.angle_to(E) - self.Ar)
+		print(self.Bz.angle_to(F) - self.Br)
 
 		with GlobePlotMpl() as gpl :
 			#gpl.add_point(self.Az, 'Az', 'r')
@@ -57,6 +67,14 @@ class Dubincz_CLC() :
 			#gpl.add_point(Dx, 'Dx', 'orange')
 			gpl.add_point(Dy, 'Dy', 'orange')
 			gpl.add_point(Dz, 'Dz', 'orange')
+
+			gpl.add_point(I, 'I', 'purple')
+			gpl.add_point(O, 'O', 'purple')
+
+			gpl.add_signed_arc(I, E, self.Az, self.Aw)
+			gpl.add_line(E, F)
+			gpl.add_signed_arc(F, O, self.Bz, self.Bw)
+
 
 	def theta_direct(self) :
 		Ar, Br, AB = self.Ar, self.Br, self.AB
@@ -97,7 +115,7 @@ if __name__ == '__main__' :
 	Bz = goto.globe.Blip(20.0, 20.0).as_vector
 	Bh = math.radians(60.0)
 	Br = 1500000 / goto.globe.earth_radius
-	Bw = 1 # turn to the right
+	Bw = -1 # turn to the right
 	Bx, By = Bz.oriented_frame(Bh, -Bw)
 
 	Dubincz_CLC(Az, Ay, Ar, Aw, Bz, By, Br, Bw).resolve()
