@@ -27,7 +27,8 @@ class arrow_3d(matplotlib.patches.FancyArrowPatch):
 		return np.min(zs)
 
 class GlobePlotMpl(GlobePlot__base__) :
-	def __init__(self, pth=None) :
+	def __init__(self, title='', pth=None) :
+		self.title = title
 		self.pth = pth
 
 	def __enter__(self) :
@@ -43,6 +44,8 @@ class GlobePlotMpl(GlobePlot__base__) :
 			self.fig = plt.figure()
 		else :
 			self.fig = plt.figure(figsize=(16, 16))
+
+		plt.title(self.title)
 
 		self.axe = self.fig.add_subplot(1, 1, 1, projection='3d')
 		self.axe.plot_surface(sphere_x, sphere_y, sphere_z, color='b', alpha=0.05)
