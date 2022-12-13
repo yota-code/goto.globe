@@ -5,6 +5,8 @@
 
 #include "globe_threed.h"
 
+/* contains the definitions for both vec3 and blip */
+
 g3d_vec_T g3d_vec_from_coordinates(double latitude, double longitude) {
 
 	g3d_blip_T b = {

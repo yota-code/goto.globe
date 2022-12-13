@@ -54,7 +54,6 @@ g3d_vec_T g3d_cross_product(g3d_vec_T u, g3d_vec_T v) ;
 double g3d_scalar_product(g3d_vec_T u, g3d_vec_T v) ;
 g3d_vec_T g3d_lambda_product(g3d_vec_T u, double lambda) ;
 
-
 double g3d_angle(g3d_vec_T u, g3d_vec_T v) ;
 double g3d_angle_signed(g3d_vec_T u, g3d_vec_T v, g3d_vec_T w) ;
 

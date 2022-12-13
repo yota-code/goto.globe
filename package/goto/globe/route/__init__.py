@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import collections
+import enum
 import math
 import struct
 import zlib
@@ -20,6 +21,25 @@ centerline: second version of the route, contains only lines and arcs. It shapes
 effective: the last version of the route, with added JOINT, used to compute maximal admissible speeds
 """
 
+"""
+définition du skeleton :
+
+1. type of waypoint :
+	START
+	STOP
+	__TURN_3PT__
+	__TURN_4PT_1__
+	__TURN_4PT_2__
+	GOTO
+2. latitude
+3. longitude
+4. altitude
+	
+
+
+
+"""
+
 # earth_radius = 6371008.7714
 earth_radius = 6371007.181
 # openstreetmap earth radius = 6378137.0
@@ -30,6 +50,7 @@ def interpolate(x, a, b) :
 WskPt = collections.namedtuple('WskPt', ['verb', 'pos', 'radius', 'is_large_arc', 'alt', 'spd', 'width', 'attr'])
 
 attr_enum = ['UNSPECIFIED', 'STOP', 'PARKING', 'TAXIWAY', 'GOAROUND', 'FLIGHT', 'DESCEND']
+
 
 def read_wskpt(verb, lat, lon, radius, is_large_arc, alt, spd, width, attr) :
 	return WskPt(verb, Blip(lat, lon).as_vector, radius, is_large_arc, alt, spd, width, attr)

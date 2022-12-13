@@ -8,12 +8,15 @@ from goto.globe.blip import Blip
 import geometrik.threed as g3d
 
 class SegmentLine() :
+
 	debug = True
 
 	def __init__(self, A:Blip, B:Blip) :
 
 		self.Ax = A.as_vector
 		self.Bx = B.as_vector
+
+		assert(1.0 <= self.Ax.angle_to(self.Bx) * goto.globe.earth_radius, "no line segment when length is less than one meter")
 
 		self.compute_def()
 

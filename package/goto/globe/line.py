@@ -9,6 +9,7 @@ from cc_pathlib import Path
 import geometrik.threed as g3d
 
 # import goto.globe.blip
+# priorité à segment
 
 class LineSegment() :
 
