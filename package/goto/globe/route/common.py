@@ -2,6 +2,7 @@
 
 import enum
 import dataclasses
+import struct
 
 class RouteAltitude(enum.IntEnum) :
 	UNSPECIFIED = 0 
@@ -44,16 +45,25 @@ class RoutePiece() :
 	heading: float
 	heading_typ: RouteHeading
 	corridor_width: float
-	corridot_height: float
+	corridor_height: float
 	terrain_elevation: float
 	geoid_elevation: float
 	leg_attribute: RouteAttr
 	stop_at: bool
 
+	def __getitem__(self, k) :
+		return getattr(self, k)
+
+	def __setitem__(self, k, v) :
+		setattr(self, k, v)
+
 	def to_binary(self) :
 		waypoint_stt = struct.Struct('ddfbfifififfffii')
-		return waypoint_stt.pack(* dataclasses.astuple(self))
+		return waypoint_stt.pack(* dataclasses.astuple(self)[1:])
 
 	def to_tsv(self) :
 		return '\t'.join(i.name if isinstance(i, enum.Enum) else str(i) for i in dataclasses.astuple(self))
+
+	def to_lang_c(self) :
+		return '\t\t{' + ', '.join(f'UPMV{i.__class__.__name__.upper()}_{i.name}' if isinstance(i, enum.Enum) else str(i) for i in dataclasses.astuple(self)[1:]) + '},'
 
