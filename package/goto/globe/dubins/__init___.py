@@ -146,12 +146,12 @@ class Dubincc_CLC() :
 
 	def theta(self) :
 		Ar, Br, AB = self.Ar, self.Br, self.AB
-		w = math.copysign(1.0, self.Bw * self.Aw)
+		x = math.copysign(1.0, self.Bw * self.Aw)
 		return math.asin(
-			(math.sin(Ar)/math.sin(AB) - w*math.sin(Br)/math.tan(AB)) / 
+			(math.sin(Ar)/math.sin(AB) - x*math.sin(Br)/math.tan(AB)) / 
 			math.sqrt(
-				(math.sin(Br)*math.cos(AB) - w*math.sin(Ar))**2 /
-				(math.sin(Ar)**2 - w*2*math.sin(Ar)*math.sin(Br)*math.cos(AB) + math.sin(Br)**2)
+				(math.sin(Br)*math.cos(AB) - x*math.sin(Ar))**2 /
+				(math.sin(Ar)**2 - x*2*math.sin(Ar)*math.sin(Br)*math.cos(AB) + math.sin(Br)**2)
 			)
 		)
 
