@@ -33,13 +33,18 @@ class Dubincc_CLC() :
 
 	def compute_points(self) :
 		if self.Bw * self.Aw > 0 :
+			print("DIRECT", self.Bw, self.Aw)
 			u = 1 if self.AB < math.pi / 4 else -1
 			theta = self.Aw * self.theta_direct()
+			# theta = self.Aw * self.theta()
 			psi = u * (self.Aw *  math.asin(math.sin(self.Ar) / math.sin(theta)) + math.pi / 2)
 		else :
-			print("CAS 2")
+			print("CROSSED", self.Bw, self.Aw)
 			theta = self.Aw * self.theta_crossed()
+			# theta = self.Aw * self.theta()
 			psi = self.Aw *  math.asin(math.sin(self.Ar) / math.sin(theta)) + math.pi / 2
+
+		print("direct", self.theta_direct(), "crossed", self.theta_crossed(), self.theta())
 
 		Dy = self.Cx.deflect(self.Cy, psi)
 		Dz = self.Cz.deflect(Dy, theta)
@@ -63,7 +68,8 @@ class Dubincc_CLC() :
 		I = self.Az.deflect(self.Ax, self.Ar)
 		O = self.Bz.deflect(self.Bx, self.Br)
 
-		with GlobePlotMpl(f"distance = {self.distance:.3g}", pth=f"save_{'L' if self.Aw < 0 else 'R'}S{'L' if self.Bw < 0 else 'R'}.png") as gpl :
+		# with GlobePlotMpl(f"distance = {self.distance:.3g}", pth=f"save_{'L' if self.Aw < 0 else 'R'}S{'L' if self.Bw < 0 else 'R'}.png") as gpl :
+		with GlobePlotMpl(f"distance = {self.distance:.3g}") as gpl :
 			# gpl.add_point(self.Ax, 'Ax', 'r')
 			# gpl.add_point(self.Ay, 'Ay', 'g')
 			gpl.add_point(self.Az, 'Az', 'b')
@@ -118,8 +124,6 @@ class Dubincc_CLC() :
 	# 		gpl.add_point(Az, 'Az', 'b')
 	# 		gpl.add_point(O, 'O', 'k')
 			
-
-
 	def theta_direct(self) :
 		Ar, Br, AB = self.Ar, self.Br, self.AB
 		return math.asin(
@@ -139,6 +143,19 @@ class Dubincc_CLC() :
 				(math.sin(Ar)**2 + 2*math.sin(Ar)*math.sin(Br)*math.cos(AB) + math.sin(Br)**2)
 			)
 		)
+
+	def theta(self) :
+		Ar, Br, AB = self.Ar, self.Br, self.AB
+		w = math.copysign(1.0, self.Bw * self.Aw)
+		return math.asin(
+			(math.sin(Ar)/math.sin(AB) - w*math.sin(Br)/math.tan(AB)) / 
+			math.sqrt(
+				(math.sin(Br)*math.cos(AB) - w*math.sin(Ar))**2 /
+				(math.sin(Ar)**2 - w*2*math.sin(Ar)*math.sin(Br)*math.cos(AB) + math.sin(Br)**2)
+			)
+		)
+
+
 
 
 def Dubincc(I:goto.globe.Blip, Ah:float, Av: float, O:goto.globe.Blip, Bh: float, Bv: float) :
