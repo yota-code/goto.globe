@@ -59,6 +59,7 @@ class RoutePiece() :
 
 	def to_binary(self) :
 		waypoint_stt = struct.Struct('ddfbfifififfffii')
+		print(dataclasses.astuple(self)[1:])
 		return waypoint_stt.pack(* dataclasses.astuple(self)[1:])
 
 	def to_tsv(self) :

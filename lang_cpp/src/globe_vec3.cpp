@@ -7,6 +7,14 @@
 
 namespace globe {
 
+	Vec3::Vec3() {
+		this->x = 0.0;
+		this->y = 0.0;
+		this->z = 0.0;
+		this->_is_unit = false;
+
+	}
+
 	Vec3::Vec3(double x, double y, double z) {
 		this->x = x;
 		this->y = y;
@@ -93,8 +101,8 @@ namespace globe {
 		return copysign(c, s);
 	}
 
-	Vec3 Vec3::normalized() {
-		double n = this->norm();
+	Vec3 Vec3::normalized() const {
+		double n = 1.0 / this->norm();
 		return Vec3(
 			n * this->x,
 			n * this->y,
@@ -103,11 +111,11 @@ namespace globe {
 		);
 	}
 
-	double Vec3::norm() {
+	double Vec3::norm() const {
 		return (this->_is_unit) ? (1.0) : (sqrt(this->norm2()));
 	}
 
-	double Vec3::norm2() {
+	double Vec3::norm2() const {
 		return (
 			this->x * this->x +
 			this->y * this->y +
@@ -115,20 +123,27 @@ namespace globe {
 		);
 	}
 
+	Vec3 Vec3::deflect(const Vec3 & other, double angle) {
+		Vec3 res = (*this) * cos(angle) + other * sin(angle);
+		return res;
+	}
+
 	Vec3 operator*(double value, Vec3 & self) {
-		return self.lambda_product(value);
+		Vec3 res = self.lambda_product(value);
+		return res;
 	}
 
 	Vec3 operator*(Vec3 & self, double value) {
-		return self.lambda_product(value);
+		Vec3 res = self.lambda_product(value);
+		return res;
 	}
 
 	std::ostream & operator<<(std::ostream & os, const Vec3 & self) {
-		return os << "Vec3(" << ((self._is_unit) ? ("= ") : ("")) << self.x << ", " << self.y << ", " << self.z << ")";
+		return os << "Vec3(" << ((self._is_unit) ? ("! ") : ("")) << self.x << ", " << self.y << ", " << self.z << ")";
 	}
 
-	Blip Vec3::to_blip() {
-		auto unit = this->normalized();
+	Blip Vec3::as_blip() {
+		Vec3 unit = this->normalized();
 
 		double theta = acos(unit.z);
 		double phi = atan2(unit.y, unit.x);
@@ -137,6 +152,16 @@ namespace globe {
 			GLOBE_TO_DEGREES(M_PI_2 - theta),
 			GLOBE_TO_DEGREES(phi)
 		);
+	}
+
+	Vec3 Vec3::project_normal(const Vec3 & normal) {
+		Vec3 res = (*this) - this->project_tangent(normal);
+		return res;
+	}
+	
+	Vec3 Vec3::project_tangent(const Vec3 & tangent) {
+		Vec3 res = ((this * tangent) / (this->norm2())) * tangent;
+		return res;
 	}
 
 }

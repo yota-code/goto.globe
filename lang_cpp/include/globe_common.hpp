@@ -1,6 +1,8 @@
 #ifndef INCLUDE_globe_common_H
 #define INCLUDE_globe_common_H
 
+#define GLOBE_VERBOSE (1)
+
 #define GLOBE_EARTH_RADIUS (6371008.7714)
 
 #define GLOBE_TO_RADIANS(x) (M_PI_2 * (x) / 90.0)

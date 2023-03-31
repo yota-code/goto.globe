@@ -37,6 +37,15 @@ header_lst = ["verb", "latitude", "longitude", "leg_radius", "is_large_arc", "al
 '''
 
 class RoutePacker() :
+
+	# w_zero = [
+	# 	'UNSPECIFIED', 0.0, 0.0, 0.0, False,
+	# 	0.0, RouteAltitude['UNSPECIFIED'],
+	# 	0.0, RouteSpeed['UNSPECIFIED'],
+	# 	0.0, RouteHeading['UNSPECIFIED'],
+	# 	0.0, 0.0, 0.0, 0.0, RouteAttr['UNSPECIFIED'], False
+	# ]
+
 	def __init__(self, cwd) :
 		self.cwd = cwd
 
@@ -55,21 +64,19 @@ class RoutePacker() :
 
 		b_lst = list()
 		for w_line in self.w_lst :
-			print(w_line, type(w_line))
-			b_lst.append(w_line.to_binary())
+			b_item = w_line.to_binary()
+			b_lst.append(b_item)
 
 		b_data = b''.join(b_lst)
+		b_padding = b'\x00' * len(b_item) * (256 - len(b_lst))
 
 		(self.cwd / 'route.bin').write_bytes(
-			header_stt.pack(len(self.w_lst), self.w_lst[-1].verb == 'LOOP', 0, zlib.crc32(b_data) & 0xffffffff)  + b_data
+			header_stt.pack(len(self.w_lst), self.w_lst[-1].verb == 'LOOP', 0, zlib.crc32(b_data) & 0xffffffff)  + b_data + b_padding
 		)
 
 	def to_lang_c(self) :
 		s_lst = [
-			'#include "fctext/routehandler_mod.h" TUTU',
-			"",
-			"#define kt_to_ms(x) (1852.0 * ((double)(x)) / 3600.0)",
-			"#define ft_to_m(x) (((double)(x)) * 0.3048)",
+			'#include "fctext/routehandler_mod.h"',
 			"",
 			"rte_route_C rte_main = {",
 			f"\t{len(self.w_lst)}, // length",
@@ -100,6 +107,8 @@ class RoutePacker() :
 				w_prev = w_next
 
 				w_piece = RoutePiece(* w_next)
+				w_piece.altitude *= 0.3048
+				w_piece.speed *= 1852 / 3600
 
 				w_piece.altitude_typ = RouteAltitude[w_piece.altitude_typ]
 				w_piece.speed_typ = RouteSpeed[w_piece.speed_typ]
@@ -112,12 +121,14 @@ class RoutePacker() :
 
 		return w_output
 
-	def unwrap_turn_4pt(self, w_input) :
+	def pad_zero(self, w_input) :
+		w_output = w_input[:] + [RoutePiece(* self.w_zero) for i in range(256 - len(w_input))]
+		return w_output
 
+	def unwrap_turn_4pt(self, w_input) :
 		return w_input[:]
 
 	def unwrap_turn_3pt(self, w_input) :
-
 		w_output = list()
 
 		while w_input :
@@ -157,5 +168,5 @@ class RoutePacker() :
 
 if __name__ == '__main__' :
 
-	cwd = Path('../../../../test/waystack/goaround').resolve()
+	cwd = Path().resolve()
 	u = RoutePacker(cwd).process()
