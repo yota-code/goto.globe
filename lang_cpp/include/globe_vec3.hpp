@@ -13,41 +13,41 @@ namespace globe {
 
 		public :
 
-			double x;
-			double y;
-			double z;
+			const double x;
+			const double y;
+			const double z;
 			
-			Vec3();
+			// Vec3();
 			Vec3(double x=0.0, double y=0.0, double z=0.0);
 			Vec3(double x, double y, double z, bool is_unit);
 
 			Blip as_blip();
 
-			Vec3 cross_product(const Vec3 & other);
-			Vec3 lambda_product(double value);
-			double scalar_product(const Vec3 & other);
+			Vec3 cross_product(const Vec3 & other) const;
+			Vec3 lambda_product(double value) const;
+			double scalar_product(const Vec3 & other) const;
 
-			Vec3 add(const Vec3 & other); // return the sum of two vectors
-			Vec3 inv(); // return the additive inverse of a vector
+			Vec3 add(const Vec3 & other) const; // return the sum of two vectors
+			Vec3 inv() const; // return the additive inverse of a vector
 
 			Vec3 normalized() const;
 
 			double norm() const;
 			double norm2() const;
 
-			double angle_to(Vec3 & other);
-			double angle_to(Vec3 & other, Vec3 & way);
+			double angle_to(const Vec3 & other);
+			double angle_to(const Vec3 & other, const Vec3 & way);
 
-			Vec3 deflect(const Vec3 & other, double angle);
+			Vec3 deflect(const Vec3 & other, double angle) const;
 
-			Vec3 project_normal(const Vec3 & normal);
-			Vec3 project_tangent(const Vec3 & tangent);
+			Vec3 project_normal(const Vec3 & normal) const;
+			Vec3 project_tangent(const Vec3 & tangent) const;
 
-			Vec3 operator+(const Vec3 & other); // overload a + b with a.add(b)
-			Vec3 operator-(Vec3 & other); // overload a - b with a.add(b.inv())
-			Vec3 operator-(); // overload -u with u.inv()
+			Vec3 operator+(const Vec3 & other) ; // overload a + b with a.add(b)
+			Vec3 operator-(Vec3 & other) const; // overload a - b with a.add(b.inv())
+			Vec3 operator-() const; // overload -u with u.inv()
 
-			double operator*(const Vec3 & other); // overload a * b with a.scalar_product(b)
+			double operator*(const Vec3 & other) const; // overload a * b with a.scalar_product(b)
 			Vec3 operator^(const Vec3 & other); // overload a ^ b with a.cross_product(b)
 
 			friend Vec3 operator*(double k, const Vec3 & self);
@@ -57,7 +57,7 @@ namespace globe {
 
 		private :
 
-			bool _is_unit;
+			const bool _is_unit;
 
 	};
 
