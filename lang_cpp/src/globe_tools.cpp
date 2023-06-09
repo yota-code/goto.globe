@@ -19,9 +19,10 @@ namespace globe {
 
 		double w = copysign(1.0, q);
 
-		Vec3 P = line1.Bx; // point A
-		Vec3 R = line1.Ax; // point B (at the summit of the angle)
+		Vec3 P = line1.Bx; // first point
+		Vec3 R = line1.Ax; // second point, at the summit of the angle
 
+		// the demonstration of this result should be in a notebook
 		double r = -(pow(P * Q, 2)) / (
 			P.y*P.y*(-1+R.y*R.y) +
 			2*P.x*P.z*R.x*R.z +
@@ -43,6 +44,23 @@ namespace globe {
 		return Arc(E, F, copysign((angle_VE + angle_VF) / 2.0, w), false);
 		// TODO, ça pourrait être un large arc sous certaines conditions... vérifier
 
+	}
+
+	/*Arc turn_4pt(const Vec3 & A, const Vec3 & B, const Vec3 & C, const Vec3 & D) {
+
+
+
+
+
+
+	}*/
+
+	double turn_angle(const Vec3 & A, const Vec3 & B, const Vec3 & C) {
+		// return the angle the helicopter have to turn in B, to go from AB to BC
+		Line line1 = Line(B, A);
+		Line line2 = Line(B, C);
+
+		return line2.Az.angle_to(- line1.Az, B);
 	}
 
 

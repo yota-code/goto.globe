@@ -13,9 +13,9 @@ namespace globe {
 
 		public :
 
-			const double x;
-			const double y;
-			const double z;
+			double x;
+			double y;
+			double z;
 			
 			// Vec3();
 			Vec3(double x=0.0, double y=0.0, double z=0.0);
@@ -44,7 +44,7 @@ namespace globe {
 			Vec3 project_tangent(const Vec3 & tangent) const;
 
 			Vec3 operator+(const Vec3 & other) ; // overload a + b with a.add(b)
-			Vec3 operator-(Vec3 & other) const; // overload a - b with a.add(b.inv())
+			Vec3 operator-(const Vec3 & other) const; // overload a - b with a.add(b.inv())
 			Vec3 operator-() const; // overload -u with u.inv()
 
 			double operator*(const Vec3 & other) const; // overload a * b with a.scalar_product(b)
@@ -57,7 +57,7 @@ namespace globe {
 
 		private :
 
-			const bool _is_unit;
+			bool _is_unit;
 
 	};
 

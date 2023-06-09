@@ -20,7 +20,7 @@ g3d_vec_T g3d_vec_from_coordinates(double latitude, double longitude) {
 
 g3d_vec_T g3d_blip_to_vec(g3d_blip_T b) {
 
-	double theta = (M_PI / 2) - G3D_TO_RADIANS(b.lat);
+	double theta = (M_PI / 2.0) - G3D_TO_RADIANS(b.lat);
 	double phi = G3D_TO_RADIANS(b.lon);
 
 	double sin_theta = sin(theta);
@@ -35,7 +35,6 @@ g3d_vec_T g3d_blip_to_vec(g3d_blip_T b) {
 		cos_theta,
 		true
 	};
-
 	return u;
 
 }
@@ -46,10 +45,9 @@ g3d_blip_T g3d_vec_to_blip(g3d_vec_T v) {
 	double phi = atan2(v.y, v.x);
 
 	g3d_blip_T b = {
-		G3D_TO_DEGREES(M_PI_2 - theta),
+		G3D_TO_DEGREES((M_PI / 2.0) - theta),
 		G3D_TO_DEGREES(phi)
 	};
-
 	return b;
 
 }
@@ -62,7 +60,6 @@ g3d_vec_T g3d_cross_product(g3d_vec_T u, g3d_vec_T v) {
 		(u.x * v.y) - (u.y * v.x),
 		false
 	};
-
 	return w;
 
 }
@@ -75,7 +72,6 @@ g3d_vec_T g3d_lambda_product(g3d_vec_T u, double lambda) {
 		u.z * lambda,
 		false
 	};
-
 	return w;
 
 }
@@ -122,12 +118,24 @@ g3d_vec_T g3d_add(g3d_vec_T u, g3d_vec_T v) {
 		u.z + v.z,
 		false
 	};
-
 	return w;
 
 }
 
-g3d_vec_T g3d_composed(g3d_vec_T Ux, g3d_vec_T Uy, double angle) {
+g3d_vec_T g3d_sub(g3d_vec_T u, g3d_vec_T v) {
+
+	g3d_vec_T w = {
+		u.x - v.x,
+		u.y - v.y,
+		u.z - v.z,
+		false
+	};
+	return w;
+
+}
+
+
+g3d_vec_T g3d_deflect(g3d_vec_T Ux, g3d_vec_T Uy, double angle) {
 
 	return g3d_add(
 		g3d_lambda_product(Ux, cos(angle)),
@@ -136,8 +144,20 @@ g3d_vec_T g3d_composed(g3d_vec_T Ux, g3d_vec_T Uy, double angle) {
 
 }
 
+g3d_vec_T g3d_project_tangent(g3d_vec_T u, g3d_vec_T n) {
 
-g3d_vec_T g3d_normalized(g3d_vec_T u) {
+	return g3d_lambda_product(n, g3d_scalar_product(u, n) / g3d_norm_2(n)) ;
+
+}
+
+g3d_vec_T g3d_project_normal(g3d_vec_T u, g3d_vec_T n) {
+
+	return g3d_sub(u, g3d_project_tangent(u, n)) ;
+
+}
+
+
+g3d_vec_T g3d_normalize(g3d_vec_T u) {
 
 	if (u.is_unit) {
 		return u;
@@ -151,7 +171,6 @@ g3d_vec_T g3d_normalized(g3d_vec_T u) {
 		u.z / n,
 		true
 	};
-
 	return w;
 
 }

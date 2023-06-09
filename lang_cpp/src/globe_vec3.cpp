@@ -45,7 +45,7 @@ namespace globe {
 		);
 	}
 
-	Vec3 Vec3::operator-(Vec3 & other) const {
+	Vec3 Vec3::operator-(const Vec3 & other) const {
 		return this->add(other.inv());
 	}
 
@@ -122,11 +122,11 @@ namespace globe {
 		return (*this) * cos(angle) + other * sin(angle);
 	}
 
-	Vec3 operator*(double value, Vec3 & self) {
+	Vec3 operator*(double value, const Vec3 & self) {
 		return self.lambda_product(value);
 	}
 
-	Vec3 operator*(Vec3 & self, double value) {
+	Vec3 operator*(const Vec3 & self, double value) {
 		return self.lambda_product(value);
 	}
 
@@ -141,19 +141,17 @@ namespace globe {
 		double phi = atan2(unit.y, unit.x);
 
 		return Blip(
-			GLOBE_TO_DEGREES(M_PI_2 - theta),
+			GLOBE_TO_DEGREES((M_PI / 2.0) - theta),
 			GLOBE_TO_DEGREES(phi)
 		);
 	}
 
 	Vec3 Vec3::project_normal(const Vec3 & normal) const {
-		Vec3 res = (*this) - this->project_tangent(normal);
-		return res;
+		return (*this) - this->project_tangent(normal);
 	}
 	
 	Vec3 Vec3::project_tangent(const Vec3 & tangent) const {
-		Vec3 res = (((*this) * tangent) / (this->norm2())) * tangent;
-		return res;
+		return ( ((*this) * tangent) / this->norm2() ) * tangent;
 	}
 
 }

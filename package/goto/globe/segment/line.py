@@ -12,24 +12,27 @@ class SegmentLine() :
 	debug = True
 
 	def __init__(self, A:Blip, B:Blip) :
-
 		self.Ax = A.as_vector
 		self.Bx = B.as_vector
 
-		assert(1.0 <= self.Ax.angle_to(self.Bx) * goto.globe.earth_radius, "no line segment when length is less than one meter")
+		self.angle = self.Ax.angle_to(self.Bx)
+
+		assert(1e-8 <= self.Ax.angle_to(self.Bx), "no line segment with length less than 40cm")
+
+		self.length = self.angle * goto.globe.earth_radius
 
 		self.compute_def()
 
-	def compute_def(self) :
+	def position_at(self, t) :
+		# t should be in [0.0; 1.0]
+		return self.Ax.deflect(self.Az, t * self.angle)
 
+	def compute_def(self) :
 		# oriented rightward, perpendicular to the trajectory
 		self.Ay = (self.Bx @ self.Ax).normalized()
 
 		# oriented forward, perpendicular to Ax
 		self.Az = (self.Ax @ self.Ay)
-
-		self.sector = self.Ax.angle_to(self.Bx)
-		self.length = self.sector * goto.globe.earth_radius
 
 	def compute_sta(self, M) :
 		self.Mx = M.as_vector
@@ -40,7 +43,7 @@ class SegmentLine() :
 		self.Fe, self.Fn = Fe, Fn
 		self.track = self.Pz.atan2(Fe, Fn)
 		# self.angle = self.Px.angle_to(self.Ax, self.Ay)
-		self.advance = self.Px.atan2(self.Az, self.Ax) / self.sector
+		self.advance = self.Px.atan2(self.Az, self.Ax) / self.angle
 
 	def plot_sta(self) :
 		from goto.globe.plot import GlobePlotMpl

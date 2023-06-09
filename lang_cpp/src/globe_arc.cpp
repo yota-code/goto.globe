@@ -46,8 +46,8 @@ namespace globe {
 	Vec3 Arc::point_at(double t) {
 		double w = copysign(1.0, this->radius);
 
-		vec3 Ay = w * (this->Cx ^ this->Az);
-		vec3 Cy = Ay.deflect(this->Az, t * this->sector);
+		Vec3 Ay = w * (this->Cx ^ this->Az);
+		Vec3 Cy = Ay.deflect(this->Az, t * this->sector);
 
 		return this->Cx.deflect(Cy, fabs(this->radius));
 	}

@@ -14,6 +14,7 @@ e = 6371008.7714
 class SegmentArc() :
 
 	def __init__(self, A:Blip, B:Blip, radius:float, is_large_arc:bool=False, debug:bool=False) :
+		# print(f"SegmentArc({A}, {B}, radius={radius}, is_large_arc={is_large_arc})")
 
 		self.debug = debug
 
@@ -26,12 +27,25 @@ class SegmentArc() :
 		self.Ax = A.as_vector
 		self.Bx = B.as_vector
 
+		self.angle = self.Ax.angle_to(self.Bx)
 		self.aperture = self.bounded_aperture(radius)
 
 		self.compute_def()
 
+	def position_at(self, t) :
+		Ax, Bx, Cx = self.Ax, self.Bx, self.Cx
+
+		w = math.copysign(1.0, self.radius)
+
+		Cz = w * (Ax @ Cx).normalized() # always forward
+		Cy = (Cz @ Cx) # always direct
+
+		Cu = Cy.deflect(Cz, t * abs(self.sector))
+
+		return Cx.deflect(Cu, abs(self.radius) / goto.globe.earth_radius)
+
 	def bounded_aperture(self, radius) :
-		a_mini = self.Ax.angle_to(self.Bx) / 2.0
+		a_mini = self.angle / 2.0
 
 		a_abs = abs(radius / goto.globe.earth_radius)
 		a_maxi = math.pi / 2.0
@@ -60,7 +74,7 @@ class SegmentArc() :
 		
 		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0)) # TODO: check bound !
 		
-		Cx = g3d.Vector.compose(Qx, Qy, w * k * m)
+		Cx = Qx.deflect(Qy, w * k * m)
 		Cz = Qz
 		Cy = w * Cx @ Cz
 
@@ -89,12 +103,12 @@ class SegmentArc() :
 			#self.plot_def()
 
 	def plot_def(self, pth=None) :
-		from goto.globe.plot import GlobePlotMpl
+		from goto.globe.plot import GlobePlotGps as gpl
 
 		w = math.copysign(1.0, self.sector)
 		k = -1.0 if abs(self.sector) > math.pi else 1.0
 
-		with GlobePlotMpl(pth) as plt :
+		with gpl(pth) as plt :
 			plt.add_point(self.Ax, "Ax", "orange")
 			plt.add_point(self.Bx, "Bx", "cyan")
 			plt.add_point(self.Cx, "Cx", "magenta")
@@ -145,7 +159,7 @@ class SegmentArc() :
 
 		aperture_cur = self.Mx.angle_to(self.Cx, self.Qz)
 
-		Px = g3d.Vector.compose(self.Cx, self.Cy, k * self.aperture)
+		Px = self.Cx.deflect(self.Cy, k * self.aperture)
 
 		# dev_lat = Px.angle_to(self.Mx, self.Qz)
 		dev_lat = k * Px.angle_to(self.Mx, self.Cz)
@@ -254,34 +268,36 @@ class SegmentArc() :
 if __name__ == '__main__' :
 	from goto.globe.blip import Blip
 
-	BOD = Blip(44.828333, -0.715556).as_vector
-	MXP = Blip(45.63, 8.723056).as_vector
-	MRS = Blip(43.436667, 5.215).as_vector
-	LHR = Blip(51.4775, -0.461389).as_vector
-	LIS = Blip(38.774167, -9.134167).as_vector
-	RKV = Blip(64.13, -21.940556).as_vector
-	SYD = Blip(-33.946111, 151.177222).as_vector
-	PRY = Blip(-25.653611, 28.224167).as_vector
-	SVO = Blip(55.972778, 37.414722).as_vector
-	SIN = Blip(1.359167, 103.989444).as_vector
+	# BOD = Blip(44.828333, -0.715556).as_vector
+	# MXP = Blip(45.63, 8.723056).as_vector
+	# MRS = Blip(43.436667, 5.215).as_vector
+	# LHR = Blip(51.4775, -0.461389).as_vector
+	# LIS = Blip(38.774167, -9.134167).as_vector
+	# RKV = Blip(64.13, -21.940556).as_vector
+	# SYD = Blip(-33.946111, 151.177222).as_vector
+	# PRY = Blip(-25.653611, 28.224167).as_vector
+	# SVO = Blip(55.972778, 37.414722).as_vector
+	# SIN = Blip(1.359167, 103.989444).as_vector
 
 
-	B = Blip(0.0, 0.0)
-	# #A = Blip(43.43880325227894, 5.226326085217038)
-	A = Blip(45.0, 45.0)
-	# #B = Blip(43.43681649080234, 5.219997634114621)
-	M = Blip(40.0, 45.0)
-	# #M = Blip(43.43858630342856, 5.226460832953308)
-	# # u = SegmentArc(A, B, -2500000.0, False)
-	# # u = SegmentArc(A, B, 2500000.0, False)
-	#u = SegmentArc(B, A, -3500000.0, True, True).compute_sta(M)
-	#u = SegmentArc(B, A, -3500000.0, False, True).compute_sta(M)
-	#u = SegmentArc(B, A, 3500000.0, True, True).compute_sta(M)
-	u = SegmentArc(B, A, 3500000.0, False, True).compute_sta(M)
+	# B = Blip(0.0, 0.0)
+	# # #A = Blip(43.43880325227894, 5.226326085217038)
+	# A = Blip(45.0, 45.0)
+	# # #B = Blip(43.43681649080234, 5.219997634114621)
+	# M = Blip(40.0, 45.0)
+	# # #M = Blip(43.43858630342856, 5.226460832953308)
+	# # # u = SegmentArc(A, B, -2500000.0, False)
+	# # # u = SegmentArc(A, B, 2500000.0, False)
+	# #u = SegmentArc(B, A, -3500000.0, True, True).compute_sta(M)
+	# #u = SegmentArc(B, A, -3500000.0, False, True).compute_sta(M)
+	# #u = SegmentArc(B, A, 3500000.0, True, True).compute_sta(M)
+	# u = SegmentArc(B, A, 3500000.0, False, True).compute_sta(M)
 	#u = SegmentArc(A, B, 308.5912, False).compute_sta(M)
 	# u = SegmentArc(A, B, -2500000.0, True)
 	# u
 
+	u = SegmentArc(Blip(85.0, 0.0), Blip(85.0, 90.0), math.radians(5.0) * goto.globe.earth_radius, False, True)
+	print(u)
 	#u = SegmentArc(LIS, SVO, 2500000.0, True)
 
 	# A = Blip(43.43961707558193, 5.226917705594136)

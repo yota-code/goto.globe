@@ -3,8 +3,6 @@
 
 #include "globe_threed.h"
 
-#define GLB_EARTH_RADIUS (6371008.7714)
-
 typedef struct {
 
 	g3d_vec_T Ax;
@@ -22,11 +20,11 @@ typedef struct {
 	double sector;
 	double length;
 
-} gbl_arc_T;
+} glb_arc_T;
 
-gbl_arc_T gbl_arc_from_radius(g3d_vec_T A, g3d_vec_T B, double radius, bool is_large_arc) ;
+glb_arc_T glb_arc__NEW__from_radius(g3d_vec_T A, g3d_vec_T B, double radius, bool is_large_arc) ;
 
-g3d_vec_T gbl_arc_project(gbl_arc_T * self, g3d_vec_T Mx) ;
-
+g3d_vec_T glb_arc_project(glb_arc_T * self, g3d_vec_T Mx) ;
+g3d_vec_T glb_arc_point_at(glb_arc_T * this, double t) ;
 
 #endif /* #define INCLUDE_globe_arc_H */

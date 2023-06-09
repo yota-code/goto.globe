@@ -10,6 +10,7 @@ namespace globe {
 	class Line {
 
 		public:
+
 			Vec3 Ax; // point at the beginning of the line
 			Vec3 Bx; // point at the end of the line
 
@@ -17,12 +18,15 @@ namespace globe {
 			Vec3 Az; // vector oriented forward, perpendicular to Ax and Ay
 
 			double angle; // distance between A and B in radians
-			double length; // distance between A and B in meters
 
 			Line(const Vec3 & A, const Vec3 & B);
 			Line(const Blip & A, const Blip & B);
 
 			Vec3 point_at(double t);
+			Vec3 projected(const Vec3 & M);
+
+			double length();
+
 	};
 
 }
