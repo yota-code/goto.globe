@@ -83,8 +83,8 @@ class GlobePlotGps(GlobePlot__base__) :
 	def add_circle(self, Cx, Px) :
 		self.line_lst.append( GlobePlot__base__.add_circle(self, Cx, Px) )
 
-	def add_segment(self, u) :
-		self.line_lst.append( GlobePlot__base__.add_segment(self, u) )
+	def add_segment(self, obj) :
+		self.line_lst.append( GlobePlot__base__.add_segment(self, obj, 2 if obj.radius == 0.0 else 128) )
 
 	def add_border(self, u) :
 		self.line_lst.append( GlobePlot__base__.add_border(self, u) )

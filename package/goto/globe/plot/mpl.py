@@ -70,25 +70,6 @@ class GlobePlotMpl(GlobePlot__base__) :
 			[p.z for p in p_lst], color=color
 		)
 
-	def add_arc_from_radius(self, Ax, Bx, radius, color='k') :
-
-		A = Ax.normalized()
-		B = Bx.normalized()
-
-		angle_ab = A.angle_to(B)
-		rad_mini = angle_ab / 2.0
-
-		way = math.copysign(1.0, radius)
-		rad = way * max(rad_mini, min(abs(radius), math.pi / 2))
-
-		I = (A + B).normalized()
-		Q = way * (B @ A).normalized()
-		t = math.acos(math.cos(radius) / (A * I))
-
-		C = I * math.cos(t) + Q * math.sin(t)
-
-		return C
-
 	def __exit__(self, exc_type, exc_value, traceback) :
 		self.axe.view_init(elev=20.0, azim=0.0)
 		if self.pth is None :

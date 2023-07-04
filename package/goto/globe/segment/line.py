@@ -3,7 +3,6 @@
 import math
 
 import goto.globe
-from goto.globe.blip import Blip
 
 import geometrik.threed as g3d
 
@@ -11,9 +10,11 @@ class SegmentLine() :
 
 	debug = True
 
-	def __init__(self, A:Blip, B:Blip) :
+	def __init__(self, A: goto.globe.Blip | g3d.Vector, B: goto.globe.Blip | g3d.Vector) :
 		self.Ax = A.as_vector
 		self.Bx = B.as_vector
+
+		self.radius = 0.0
 
 		self.angle = self.Ax.angle_to(self.Bx)
 

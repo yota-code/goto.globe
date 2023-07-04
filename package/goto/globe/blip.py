@@ -94,8 +94,6 @@ class Blip() :
 
 		d = 0
 
-
-
 if __name__ == '__main__' :
 	u = Blip(0.0, 0.0)
 	print(u)

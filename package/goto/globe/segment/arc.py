@@ -3,18 +3,19 @@
 import math
 
 import goto.globe
-from goto.globe.blip import Blip
+from goto.globe.segment.line import SegmentLine
 
 import geometrik.threed as g3d
-
-e = 6371008.7714
 
 # 3 point creation to be merged from arc.py
 
 class SegmentArc() :
 
-	def __init__(self, A:Blip, B:Blip, radius:float, is_large_arc:bool=False, debug:bool=False) :
+	def __init__(self, A: goto.globe.Blip | g3d.Vector, B: goto.globe.Blip | g3d.Vector, radius:float, is_large_arc:bool=False, debug:bool=False) :
 		# print(f"SegmentArc({A}, {B}, radius={radius}, is_large_arc={is_large_arc})")
+
+		self.Ax = A.as_vector
+		self.Bx = B.as_vector
 
 		self.debug = debug
 
@@ -24,13 +25,63 @@ class SegmentArc() :
 		if self.debug :
 			print(f"SegmentArc(A, B, {radius}, {is_large_arc})")
 
-		self.Ax = A.as_vector
-		self.Bx = B.as_vector
 
 		self.angle = self.Ax.angle_to(self.Bx)
 		self.aperture = self.bounded_aperture(radius)
 
 		self.compute_def()
+
+	@staticmethod
+	def from_turn_3pt(A: goto.globe.Blip | g3d.Vector, B: goto.globe.Blip | g3d.Vector, C: goto.globe.Blip | g3d.Vector, radius:float) :
+
+		aperture = radius / goto.globe.earth_radius
+
+		line_one = SegmentLine(B, A)
+		line_two = SegmentLine(B, C)
+
+		P, R, S = line_one.Bx, line_one.Ax, line_two.Bx
+
+		q = line_one.Az.angle_to(line_two.Az, line_one.Ax)
+		Q = (line_one.Az + line_two.Az).normalized()
+
+		w = math.copysign(1.0, q)
+
+		r = -(P * Q)**2 / (
+			P.y**2*(-1+R.y**2) +
+			2*P.x*P.z*R.x*R.z +
+			2*P.y*R.y*(P.x*R.x+P.z*R.z) +
+			P.z**2*(-1+R.z**2) -
+			P.x**2*(R.y**2+R.z**2)
+		)
+
+		t = math.acos(math.sqrt(math.cos(aperture)**2 - r) / math.sqrt(1 - r))
+
+		V = R.deflect(Q, t)
+
+		E = V.project_normal(line_one.Ay).normalized()
+		F = V.project_normal(line_two.Ay).normalized()
+
+		# if self.debug :
+
+		# 	VEa = V.angle_to(E)
+		# 	VFa = V.angle_to(F)
+
+		# 	try :
+		# 		assert(	math.isclose(VEa, VFa, rel_tol=1e-4) )
+		# 		assert(	math.isclose(VEa, aperture, rel_tol=1e-4) )
+		# 	except AssertionError :
+		# 		print(VEa, VFa, aperture)
+		# 		raise
+
+		# 	BEp = R.angle_to(E) / line_one.length
+		# 	BFp = R.angle_to(F) / line_two.length
+
+		return [
+			SegmentLine(A, E),
+			SegmentArc(E, F, radius),
+			SegmentLine(F, B)
+		]
+
 
 	def position_at(self, t) :
 		Ax, Bx, Cx = self.Ax, self.Bx, self.Cx
@@ -87,7 +138,7 @@ class SegmentArc() :
 		# sector = ( math.tau - Ay.angle_to(By, Cx) ) if is_large_arc else ( Ay.angle_to(By, Cx) )
 		# sector = k * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
 		sector = -1.0 * k * w * ((math.tau if self.is_large_arc else 0.0) - Ay.angle_to(By))
-		length = sector * math.sin(self.aperture) * e
+		length = sector * math.sin(self.aperture) * goto.globe.earth_radius
 
 		self.Cx, self.Qz, self.sector, self.length = Cx, Qz, sector, length
 
@@ -113,7 +164,7 @@ class SegmentArc() :
 			plt.add_point(self.Bx, "Bx", "cyan")
 			plt.add_point(self.Cx, "Cx", "magenta")
 			plt.add_circle(self.Cx, self.Ax, "yellow")
-			plt.add_signed_arc(self.Ax, self.Bx, self.Cx, w)
+			plt.add_segment(self)
 
 
 		# print(f"sector: {math.degrees(sector)} w={w} k={k}", "turn right" if w > 0.0 else "turn left")
@@ -139,7 +190,7 @@ class SegmentArc() :
 	def compute_advance(self, Ap, Pp) :
 		Cx, sector = self.Cx, self.sector
 
-	def compute_sta(self, M:Blip) :
+	def compute_sta(self, M:goto.globe.Blip | g3d.Vector) :
 
 		self.Mx = M.as_vector
 
