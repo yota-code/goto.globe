@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 import geometrik.threed as g3d
 
+
 class GlobePlot__base__() :
 
 	def add_circle(self, Cx, radius, n=256) :
@@ -30,7 +31,9 @@ class GlobePlot__base__() :
 
 		return p_lst
 
-	def add_line(self, Ax, Bx, n=128) :
+	def add_line(self, A, B, n=128) :
+		Ax, Bx = A.as_vector, B.as_vector
+
 		Az = (Ax @ Bx).normalized()
 		Ay = Az @ Ax
 
@@ -43,9 +46,12 @@ class GlobePlot__base__() :
 		return p_lst
 
 	def add_segment(self, obj, n=128) :
+		import goto.globe.segment
 		p_lst = list()
+		if isinstance(obj, goto.globe.segment.SegmentArc) :
+			p_lst.append(obj.Cx)
 		for t in np.linspace(0.0, 1.0, n) :
-			p_lst.append( obj.position_at(t) )
+			p_lst.append(obj.position_at(t))
 		return p_lst
 
 	def add_border(self, u, n=64) :

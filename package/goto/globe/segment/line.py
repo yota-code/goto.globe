@@ -6,19 +6,23 @@ import goto.globe
 
 import geometrik.threed as g3d
 
+type gpoint = goto.globe.Blip | g3d.Vector
+
 class SegmentLine() :
 
 	debug = True
 
-	def __init__(self, A: goto.globe.Blip | g3d.Vector, B: goto.globe.Blip | g3d.Vector) :
+	def __init__(self, A:gpoint, B:gpoint) :
 		self.Ax = A.as_vector
 		self.Bx = B.as_vector
 
 		self.radius = 0.0
 
+		print(f"SegmentLine({A}, {B})")
+
 		self.angle = self.Ax.angle_to(self.Bx)
 
-		assert(1e-8 <= self.Ax.angle_to(self.Bx), "no line segment with length less than 40cm")
+		assert 1e-8 <= self.Ax.angle_to(self.Bx), "SegmentLine() can't have a length smaller than 40cm"
 
 		self.length = self.angle * goto.globe.earth_radius
 

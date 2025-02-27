@@ -4,35 +4,144 @@ import math
 
 import goto.globe
 from goto.globe.segment.line import SegmentLine
+from goto.globe.blip import Blip
 
 import geometrik.threed as g3d
 
 # 3 point creation to be merged from arc.py
 
+type gpoint = gpoint
+
 class SegmentArc() :
-
-	def __init__(self, A: goto.globe.Blip | g3d.Vector, B: goto.globe.Blip | g3d.Vector, radius:float, is_large_arc:bool=False, debug:bool=False) :
-		# print(f"SegmentArc({A}, {B}, radius={radius}, is_large_arc={is_large_arc})")
-
-		self.Ax = A.as_vector
-		self.Bx = B.as_vector
-
+	"""
+	self.radius, on déprécie, on garde juste l'aperture, toujours positive
+	self.sector donne le signe du virage et dit si c'est un large arc ou pas
+	"""
+	def __init__(self, A:gpoint, B:gpoint, radius:float=None, is_large_arc:bool=False, center:gpoint=None, turnway:int=0, debug:bool=False) :
 		self.debug = debug
 
-		self.radius = radius
-		self.is_large_arc = is_large_arc
+		if radius is not None :
+			self._init_with_radius(A, B, radius, is_large_arc)
+		elif center is not None :
+			self._init_with_center(A, B, center, turnway)
+		else :
+			raise ValueError("SegmentArc must be either defined with a radius or a center")
+
+		print("effective radius:", self.radius)
+
+	@property
+	def radius(self) :
+		return self.aperture * goto.globe.earth_radius
+
+	@property
+	def is_large_arc(self) :
+		return math.pi < abs(self.sector)
+
+	@property
+	def turnway(self) :
+		return math.copysign(1.0, sector)
+
+	def _init_with_radius(self, A:gpoint, B:gpoint, radius:float, is_large_arc:bool) :
+		"""
+		radius: the signed radius, in meters. Positive to the right
+		"""
+		print(f"SegmentArc({A}, {B}, radius={radius}, is_large_arc={is_large_arc})")
+
+		Ax, Bx = A.as_vector, B.as_vector
+
+		self.angle = Ax.angle_to(Bx)
+		self.aperture = self._bounded_aperture(self.angle, radius)
+		
+		w = math.copysign(1.0, radius)
+		k = -1.0 if is_large_arc else 1.0
+		
+		# la base Q est toujours directe par construction
+		Qx = (Ax + Bx).normalized() # Qx est au milieu, entre Ax et Bx (vers le haut)
+		Qy = (Bx @ Ax).normalized() # Qy vers la droite
+		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
+		
+		# TODO: retrouver les maths justifiant ceci
+		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0)) # TODO: check bound !
+		
+		Cx = Qx.deflect(Qy, w * k * m)
+		Cz = Qz
+		Cy = w * Cx @ Cz
+
+		Az = (Ax @ Cx).normalized()
+		Ay = (Cx @ Az)
+
+		Bz = (Bx @ Cx).normalized()
+		By = (Cx @ Bz)
+
+		sector = k * w * (Ay.angle_to(By) - (math.tau if is_large_arc else 0.0))
+		length = sector * math.sin(self.aperture) * goto.globe.earth_radius
+
+		self.Ax, self.Bx, self.Cx, self.Qz = Ax, Bx, Cx, Qz
+		self.sector, self.length = sector, length
 
 		if self.debug :
-			print(f"SegmentArc(A, B, {radius}, {is_large_arc})")
+			print(f"Ax = {Blip.from_vector(self.Ax)}")
+			print(f"Bx = {Blip.from_vector(self.Bx)}")
+			print(f"Qx = {Blip.from_vector(Qx)}")
+			print(f"Qy = {Blip.from_vector(Qy)}")
+			print(f"Qz = {Blip.from_vector(Qz)}")
+			print(f"Cx = {Blip.from_vector(Cx)}")
+			print(f"m={m} k={k} w={w}")
+			print(f"sector={sector} length={length}")
 
+	def _init_with_center(self, A:gpoint, B:gpoint, center:gpoint, turnway:int) :
+		print(f"SegmentArc({A}, {B}, center={center}, turnway={turnway}")
+		Ax, Bx, Cx = A.as_vector, B.as_vector, center.as_vector
 
-		self.angle = self.Ax.angle_to(self.Bx)
-		self.aperture = self.bounded_aperture(radius)
+		self.angle = Ax.angle_to(Bx)
 
-		self.compute_def()
+		# compute the average radius
+		radius = 0.5 * (Ax.angle_to(Cx) + Bx.angle_to(Cx)) * goto.globe.earth_radius
+		self.aperture = self._bounded_aperture(self.angle, radius)
+
+		# la base Q est toujours directe par construction
+		Qx = (Ax + Bx).normalized() # Qx est au milieu, entre Ax et Bx (vers le haut)
+		Qy = (Bx @ Ax).normalized() # Qy vers la droite
+		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
+
+		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0))
+		w = 1.0 if 0 < turnway else -1.0
+		k = w * math.copysign(1.0, Cx * Qy)
+
+		Cx = Qx.deflect(Qy, w * k * m)
+		Cz = Qz
+		Cy = w * Cx @ Cz
+
+		Az = (Ax @ Cx).normalized()
+		Ay = (Cx @ Az)
+
+		Bz = (Bx @ Cx).normalized()
+		By = (Cx @ Bz)
+
+		sector = k * w * (Ay.angle_to(By) - (math.tau if k < 0.0 else 0.0))
+		length = sector * math.sin(self.aperture) * goto.globe.earth_radius
+
+		self.Ax, self.Bx, self.Cx, self.Qz, self.sector, self.length = Ax, Bx, Cx, Qz, sector, length
+
+	def _bounded_aperture(self, angle, radius) :
+		a_mini = angle / 2.0
+
+		a_abs = abs(radius / goto.globe.earth_radius)
+		a_maxi = math.pi / 2.0
+		a_bounded = max(a_mini, min(a_abs, a_maxi))
+
+		if self.debug :
+			print(f"bounded_aperture({angle * goto.globe.earth_radius:0.3f}m, {radius}m)")
+			if a_abs != a_bounded :
+				print(f"\t{a_mini} < ({a_abs} -> {a_bounded}) < {a_maxi}")
+			else :
+				print(f"\t{a_mini} < ({a_bounded}) < {a_maxi}")
+			print(f">>> {abs(radius):0.3g}m -> {a_bounded * goto.globe.earth_radius:0.3g}m")
+
+		return a_bounded
 
 	@staticmethod
-	def from_turn_3pt(A: goto.globe.Blip | g3d.Vector, B: goto.globe.Blip | g3d.Vector, C: goto.globe.Blip | g3d.Vector, radius:float) :
+	def from_turn_3pt(A:gpoint, B:gpoint, C:gpoint, radius:float) :
 
 		aperture = radius / goto.globe.earth_radius
 
@@ -82,76 +191,31 @@ class SegmentArc() :
 			SegmentLine(F, B)
 		]
 
-
 	def position_at(self, t) :
 		Ax, Bx, Cx = self.Ax, self.Bx, self.Cx
 
-		w = math.copysign(1.0, self.radius)
+		Cy = (Ax @ Cx).normalized()
+		Cz = (Cx @ Cy)
 
-		Cz = w * (Ax @ Cx).normalized() # always forward
-		Cy = (Cz @ Cx) # always direct
+		Cu = Cz.deflect(Cy, t * self.sector)
 
-		Cu = Cy.deflect(Cz, t * abs(self.sector))
+		Cv = Cx.deflect(Cu, abs(self.radius) / goto.globe.earth_radius)
 
-		return Cx.deflect(Cu, abs(self.radius) / goto.globe.earth_radius)
+		if False :
+			from goto.globe.plot import GlobePlotMpl
+			with GlobePlotMpl() as gpl :
+				self.debug = False
+				gpl.add_point(Ax, "Ax", "orange")
+				gpl.add_point(Bx, "Bx", "cyan")
+				gpl.add_point(Cx, "Cx", "magenta")
+				gpl.add_point(Cy, "Cy", "red")
+				gpl.add_point(Cz, "Cz", "red")
+				gpl.add_point(Cu, "Cu", "purple")
+				gpl.add_point(Cv, "Cv", "black")
+				gpl.add_segment(self)
+				self.debug = True
 
-	def bounded_aperture(self, radius) :
-		a_mini = self.angle / 2.0
-
-		a_abs = abs(radius / goto.globe.earth_radius)
-		a_maxi = math.pi / 2.0
-		a_bounded = max(a_mini, min(a_abs, a_maxi))
-
-		if self.debug :
-			if a_abs != a_bounded :
-				print(f"{a_mini} < ({a_abs} -> {a_bounded}) < {a_maxi}")
-			else :
-				print(f"{a_mini} < ({a_bounded}) < {a_maxi}")
-
-			print(f"radius={radius} -> aperture={a_bounded}")
-
-		return a_bounded
-
-	def compute_def(self) :
-		Ax, Bx = self.Ax, self.Bx
-
-		w = math.copysign(1.0, self.radius)
-		k = -1.0 if self.is_large_arc else 1.0
-		
-		# la base Q est toujours directe
-		Qx = (Ax + Bx).normalized() # Qx entre Ax et Bx (vers le haut)
-		Qy = (Bx @ Ax).normalized() # Qy vers la droite
-		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
-		
-		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0)) # TODO: check bound !
-		
-		Cx = Qx.deflect(Qy, w * k * m)
-		Cz = Qz
-		Cy = w * Cx @ Cz
-
-		Az = (Ax @ Cx).normalized()
-		Ay = (Cx @ Az)
-
-		Bz = (Bx @ Cx).normalized()
-		By = (Cx @ Bz)
-
-		# sector = ( math.tau - Ay.angle_to(By, Cx) ) if is_large_arc else ( Ay.angle_to(By, Cx) )
-		# sector = k * ((math.tau if is_large_arc else 0.0) - Ay.angle_to(By))
-		sector = -1.0 * k * w * ((math.tau if self.is_large_arc else 0.0) - Ay.angle_to(By))
-		length = sector * math.sin(self.aperture) * goto.globe.earth_radius
-
-		self.Cx, self.Qz, self.sector, self.length = Cx, Qz, sector, length
-
-		if self.debug :
-			print(f"Ax = {Blip.from_vector(self.Ax)}")
-			print(f"Bx = {Blip.from_vector(self.Bx)}")
-			print(f"Qx = {Blip.from_vector(Qx)}")
-			print(f"Qy = {Blip.from_vector(Qy)}")
-			print(f"Qz = {Blip.from_vector(Qz)}")
-			print(f"Cx = {Blip.from_vector(Cx)}")
-			print(f"m={m} k={k} w={w}")
-			print(f"sector={sector} length={length}")
-			#self.plot_def()
+		return Cv
 
 	def plot_def(self, pth=None) :
 		from goto.globe.plot import GlobePlotGps as gpl
@@ -190,7 +254,7 @@ class SegmentArc() :
 	def compute_advance(self, Ap, Pp) :
 		Cx, sector = self.Cx, self.sector
 
-	def compute_sta(self, M:goto.globe.Blip | g3d.Vector) :
+	def compute_sta(self, M:gpoint) :
 
 		self.Mx = M.as_vector
 
