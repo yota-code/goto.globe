@@ -1,0 +1,28 @@
+Leg  0 - Gap, Inactive,  fix KMLB 28.102750, -80.645250
+Leg  1 - Great Circle, Inactive,  fix tp1 28.287719, -80.716397
+Leg  2 - Arc, Inactive,  fix tp2 28.290006, -80.729656 left arc, 28.285494, -80.723767
+Leg  3 - Great Circle, Inactive,  fix tp1 28.107797, -80.907372
+Leg  4 - Arc, Inactive,  fix tp2 28.093722, -80.907222 left arc, 28.100836, -80.898278
+Leg  5 - Great Circle, Inactive,  fix TRV 27.678406, -80.489733
+Leg  6 - Arc, Inactive,  fix hp2 27.689864, -80.454367 left arc, 27.684133, -80.472050
+Leg  7 - Course, Inactive,  fix hp3 27.735667, -80.473100
+Leg  8 - Arc, Inactive,  fix hp4 27.724208, -80.508464 left arc, 27.729939, -80.490772
+Leg  9 - Course, Inactive,  fix TRV 27.678406, -80.489733
+Leg 10 - Great Circle, Inactive,  fix tp1 26.686675, -80.089136
+Leg 11 - Arc, Inactive,  fix tp2 26.673719, -80.089897 right arc, 26.681008, -80.106686
+Leg 12 - Gap, Inactive,  fix LLEGG 25.775306, -80.569050
+Leg 13 - Gap, Inactive,  fix cf0 25.777022, -80.569122
+Leg 14 - Course, Inactive,  fix GRITT 25.779114, -80.480931
+Leg 15 - Gap, Inactive,  fix cf0 25.780719, -80.480997
+Leg 16 - Course, Inactive,  fix INESS 25.782786, -80.393889
+Leg 17 - Gap, Inactive,  fix cf0 25.784292, -80.393953
+Leg 18 - Course, Inactive,  fix RW09 25.786267, -80.310714
+Leg 19 - Gap, Inactive,  fix CxStrt 25.786267, -80.310714
+Leg 20 - Course, Inactive,  fix 800FT 25.787100, -80.275506
+Leg 21 - Gap, Inactive,  fix df0 25.787139, -80.273861
+Leg 22 - Arc, Inactive,  fix tp2 25.785839, -80.264425 right arc, 25.762617, -80.273150
+Leg 23 - Great Circle, Inactive,  fix VKZ 25.751903, -80.154444
+Leg 24 - Arc, Inactive,  fix hp2 25.721911, -80.170953 left arc, 25.736906, -80.162697
+Leg 25 - Course, Inactive,  fix hp3 25.700153, -80.122786
+Leg 26 - Arc, Inactive,  fix hp4 25.730144, -80.106264 left arc, 25.715150, -80.114517
+Leg 27 - Course, Inactive,  fix VKZ 25.751903, -80.154444
