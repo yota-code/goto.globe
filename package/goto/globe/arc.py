@@ -66,7 +66,9 @@ class ArcSegment() :
 		self.Vx = Qx * math.cos(t) + Qy * math.sin(t) # the center of the arc
 
 	def __init__from_point(self, M: g3d.Vector) :
-		""" better if M is a middle point in between A and B """
+		""" better if M is a middle point in between A and B
+		TODO: trouver ce que cette fonction fait ?!?! M est un centre ou un point du cercle ?
+		 """
 		M = M.normalized()
 
 		Ix = (self.Ax + M).normalized()
