@@ -69,32 +69,6 @@ class SegmentArc() :
 		
 		return k, w
 
-		# la base Q est toujours directe par construction
-		Qx = (Ax + Bx).normalized() # Qx est au milieu, entre Ax et Bx (vers le haut)
-		Qy = (Bx @ Ax).normalized() # Qy vers la droite
-		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
-		
-		# TODO: retrouver les maths justifiant ceci
-		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0)) # TODO: check bound !
-
-		return k, w
-		
-		# Cx = Qx.deflect(Qy, w * k * m)
-		# Cz = Qz
-		# Cy = w * Cx @ Cz
-
-		# Az = (Ax @ Cx).normalized()
-		# Ay = (Cx @ Az)
-
-		# Bz = (Bx @ Cx).normalized()
-		# By = (Cx @ Bz)
-
-		# self.sector = k * w * (Ay.angle_to(By) - (math.tau if is_large_arc else 0.0))
-		# self.length = sector * math.sin(self.aperture) * goto.globe.earth_radius
-
-		# self.Ax, self.Bx, self.Cx, self.Qz = Ax, Bx, Cx, Qz
-
-
 	def _init_with_center(self, A:gpoint, B:gpoint, center:gpoint, turnway:int) :
 		print(f"SegmentArc({A}, {B}, center={center}, turnway={turnway}")
 		Ax, Bx, Cx = A.as_vector, B.as_vector, center.as_vector
@@ -106,41 +80,16 @@ class SegmentArc() :
 
 		self.aperture = self._bounded_aperture(self.angle, radius)
 
-		# TODO: fussionner les parties communes des deux init()
-		# la base Q est toujours directe par construction
-		Qx = (Ax + Bx).normalized() # Qx est au milieu, entre Ax et Bx (vers le haut)
-		Qy = (Bx @ Ax).normalized() # Qy vers la droite
-		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
+		Qx, Qy, Qz = self.Q_base
 
-		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0))
 		w = 1.0 if 0 < turnway else -1.0
 		k = w * math.copysign(1.0, Cx * Qy)
 
 		return k, w
 
-		# Cx = Qx.deflect(Qy, w * k * m)
-		# Cz = Qz
-		# Cy = w * Cx @ Cz
-
-		# Az = (Ax @ Cx).normalized()
-		# Ay = (Cx @ Az)
-
-		# Bz = (Bx @ Cx).normalized()
-		# By = (Cx @ Bz)
-
-		# self.sector = k * w * (Ay.angle_to(By) - (math.tau if k < 0.0 else 0.0))
-		# self.length = sector * math.sin(self.aperture) * goto.globe.earth_radius
-
-		# self.Ax, self.Bx, self.Cx, self.Qz, self.sector, self.length = Ax, Bx, Cx, Qz, sector, length
-
 	def _init_compute(self, k, w) :
 
 		Qx, Qy, Qz = self.Q_base
-
-		# la base Q est toujours directe par construction
-		Qx = (self.Ax + self.Bx).normalized() # Qx est au milieu, entre Ax et Bx (vers le haut)
-		Qy = (self.Bx @ self.Ax).normalized() # Qy vers la droite
-		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
 
 		m = math.acos(min((math.cos(self.aperture) / (Ax * Qx)), math.pi / 2.0))
 
@@ -157,7 +106,7 @@ class SegmentArc() :
 		self.sector = k * w * (Ay.angle_to(By) - (math.tau if k < 0.0 else 0.0))
 		self.length = sector * math.sin(self.aperture) * goto.globe.earth_radius
 
-		self.Cx, self.Qz = Cx, Qz
+		self.Cx = Cx
 
 		if self.debug :
 			print(f"Ax = {Blip.from_vector(self.Ax)}")
