@@ -65,12 +65,14 @@ with GlobePlotGps(Path("gps_plot.json")) as gpl :
 	Ax = None
 	for index, legtype, is_active, fixname, wpt, turnway, cnt in u_lst :
 		Bx = Blip(* wpt)
+		gpl.point_map[f"P{index}"] = Bx
 		if Ax is not None :
 			try :
 				if cnt is None :
 					obj = SegmentLine(Ax, Bx)
 				else :
 					Cx = Blip(* cnt)
+					gpl.point_map[f"C{index}"] = Cx
 					obj = SegmentArc(Ax, Bx, center=Cx, turnway=turnway)
 				gpl.add_segment(obj)
 			except AssertionError :

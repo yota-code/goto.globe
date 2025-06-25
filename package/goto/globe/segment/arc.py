@@ -21,12 +21,12 @@ class SegmentArc() :
 		self.debug = debug
 
 		self.Ax, self.Bx = A.as_vector, B.as_vector
-		self.angle = Ax.angle_to(Bx)
+		self.angle = self.Ax.angle_to(self.Bx)
 
 		assert self.angle <= math.pi / 2
 
-		Qx = (Ax + Bx).normalized() # Qx est au milieu, entre Ax et Bx (vers le haut)
-		Qy = (Bx @ Ax).normalized() # Qy vers la droite
+		Qx = (self.Ax + self.Bx).normalized() # Qx est au milieu, entre Ax et Bx (vers le haut)
+		Qy = (self.Bx @ self.Ax).normalized() # Qy vers la droite
 		Qz = Qx @ Qy # Qz vers l'avant (de Ax vers Bx)
 
 		self.Q_base = Qx, Qy, Qz
@@ -38,7 +38,7 @@ class SegmentArc() :
 		else :
 			raise ValueError("SegmentArc must be either defined with a radius or a center")
 
-		self._init_compute_arc(k, w)
+		self._init_compute(k, w)
 
 		print("effective radius:", self.radius)
 
@@ -80,14 +80,14 @@ class SegmentArc() :
 
 		self.aperture = self._bounded_aperture(self.angle, radius)
 
-		Qx, Qy, Qz = self.Q_base
-
 		w = 1.0 if 0 < turnway else -1.0
-		k = w * math.copysign(1.0, Cx * Qy)
+		k = w * math.copysign(1.0, Cx * self.Q_base[1])
 
 		return k, w
 
 	def _init_compute(self, k, w) :
+
+		Ax, Bx = self.Ax, self.Bx
 
 		Qx, Qy, Qz = self.Q_base
 
@@ -104,7 +104,7 @@ class SegmentArc() :
 		By = (Cx @ Bz)
 
 		self.sector = k * w * (Ay.angle_to(By) - (math.tau if k < 0.0 else 0.0))
-		self.length = sector * math.sin(self.aperture) * goto.globe.earth_radius
+		self.length = self.sector * math.sin(self.aperture) * goto.globe.earth_radius
 
 		self.Cx = Cx
 
@@ -116,11 +116,7 @@ class SegmentArc() :
 			print(f"Qz = {Blip.from_vector(Qz)}")
 			print(f"Cx = {Blip.from_vector(Cx)}")
 			print(f"m={m} k={k} w={w}")
-			print(f"sector={sector} length={length}")
-
-	def _init_with_center(self, A:gpoint, B:gpoint, center:gpoint, turnway:int) :
-		print(f"SegmentArc({A}, {B}, center={center}, turnway={turnway}")
-		Ax, Bx, Cx = A.as_vector, B.as_vector, center.as_vector
+			print(f"sector={self.sector} length={self.length}")
 
 	def _bounded_aperture(self, angle, radius) :
 		a_mini = angle / 2.0
@@ -200,7 +196,7 @@ class SegmentArc() :
 
 		Cv = Cx.deflect(Cu, abs(self.radius) / goto.globe.earth_radius)
 
-		if False :
+		if self.debug :
 			from goto.globe.plot import GlobePlotMpl
 			with GlobePlotMpl() as gpl :
 				self.debug = False

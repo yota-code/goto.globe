@@ -26,12 +26,13 @@ class GlobePlotGps(GlobePlot__base__) :
 	def __exit__(self, exc_type, exc_value, traceback) :
 		point_lst = list()
 		for name, u in self.point_map.items() :
-			b = Blip.from_vector(u)
+			if isinstance(u, g3d.Vector) :
+				u = Blip.from_vector(u)
 			point_lst.append({
 				"type": "Feature",
 				"geometry": {
 					"type": "Point",
-					"coordinates": [b.lon, b.lat]
+					"coordinates": [u.lon, u.lat]
 				},
 				"properties": {
 					"name": name
