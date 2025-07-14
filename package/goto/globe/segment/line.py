@@ -4,9 +4,8 @@ import math
 
 import goto.globe
 
+from goto.globe.blip import Blip, gpoint
 import geometrik.threed as g3d
-
-type gpoint = goto.globe.Blip | g3d.Vector
 
 class SegmentLine() :
 

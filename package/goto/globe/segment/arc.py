@@ -137,7 +137,7 @@ class SegmentArc() :
 
 	@staticmethod
 	def from_turn_3pt(A:gpoint, B:gpoint, C:gpoint, radius:float) :
-
+		""" TODO: comparer l'implémentation ici, à celle dans segment/turn.py """
 		aperture = radius / goto.globe.earth_radius
 
 		line_one = SegmentLine(B, A)

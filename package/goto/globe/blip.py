@@ -7,7 +7,9 @@ import sympy
 import geometrik.threed as g3d
 
 class Blip() :
-	""" a blip is a point on the unit sphere (no orientation, no altitude, no earth radius, just a dot on the map) """
+	""" a blip is a point on the unit sphere (no orientation, no altitude, no
+	earth radius, just a dot on the map expressed as a latitude and a longitude,
+	in degrees) """
 
 	def __init__(self, lat, lon, is_symbolic=False) :
 		# lat and lon are in degrees
@@ -47,7 +49,7 @@ class Blip() :
 
 	@property
 	def as_vector(self) :
-
+		""" return a blip as a unit vector """
 		theta =  (self.m.pi / 2) - (self.m.pi * self.lat / 180)
 		phi = (self.m.pi * self.lon / 180)
 
@@ -62,6 +64,7 @@ class Blip() :
 
 		# the vector must be on the unit sphere
 		if not math.isclose(v.norm, 1.0) :
+			# TODO: mettre un vrai warning
 			print(f"WARNING: norm={v.norm} ({theta} {phi})")
 		# assert( math.isclose(v.norm, 1.0) )
 
@@ -86,13 +89,15 @@ class Blip() :
 		return x, y
 
 	def p_gnomic(self, zero, pos) :
-
+		""" TODO: documenter cette tentative """
 		n = g3d.v_north
 		z = Blip(lat_zero, lon_zero).as_vector
 		x = (n @ z).normalized()
 		y = (z @ x)
 
 		d = 0
+
+type gpoint = Blip | g3d.Vector
 
 if __name__ == '__main__' :
 	u = Blip(0.0, 0.0)

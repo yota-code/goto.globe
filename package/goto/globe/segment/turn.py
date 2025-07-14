@@ -7,10 +7,12 @@ import goto.globe
 from goto.globe.blip import Blip
 from goto.globe.segment.line import SegmentLine
 
-def turn_3pt(A:Blip, B:Blip, C:Blip, radius:float, debug=False) :
-	if debug : 
-		from goto.globe.plot import GlobePlotMpl
+def turn_3pt(A:Blip, B:Blip, C:Blip, radius:float, debug=None) :
+	"""
+	radius is expected in meters
+	"""
 
+	# aperture is in radians
 	aperture = radius / goto.globe.earth_radius
 
 	line_one = SegmentLine(B, A)
@@ -52,9 +54,14 @@ def turn_3pt(A:Blip, B:Blip, C:Blip, radius:float, debug=False) :
 	BFp = R.angle_to(F) / line_two.length
 
 	if debug :
+		if isinstance(debug, Path) :
+			from goto.globe.plot import GlobePlotGps as GlobePlot
+		else :
+			from goto.globe.plot import GlobePlotMpl as GlobePlot
+		
 		print("q = ", q)
 		print("w = ", w)
-		with GlobePlotMpl() as gpl :
+		with GlobePlot() as gpl :
 			gpl.add_point(P, 'A', 'k')
 			gpl.add_point(R, 'B', 'k')
 			gpl.add_point(S, 'C', 'k')
