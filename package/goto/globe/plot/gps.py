@@ -75,16 +75,16 @@ class GlobePlotGps(GlobePlot__base__) :
 	def add_point(self, Ax, name, color=None) :
 		self.point_map[name] = Ax
 
-	def add_line(self, Ax, Bx) :
-		self.line_lst.append( GlobePlot__base__.add_line(self, Ax, Bx) )
+	def add_line(self, A, B, color=None) :
+		self.line_lst.append( GlobePlot__base__.add_line(self, A, B) )
 
-	def add_arc(self, Ax, Bx, radius=0.0) :
-		self.line_lst.append( GlobePlot__base__.add_arc(self, Ax, Bx, radius) )
+	def add_arc(self, A, B, radius=0.0) :
+		self.line_lst.append( GlobePlot__base__.add_arc(self, A, B, radius) )
 
 	def add_circle(self, Cx, Px) :
 		self.line_lst.append( GlobePlot__base__.add_circle(self, Cx, Px) )
 
-	def add_segment(self, obj) :
+	def add_segment(self, obj, color=None) :
 		self.line_lst.append( GlobePlot__base__.add_segment(self, obj, 2 if obj.radius == 0.0 else 128) )
 
 	def add_border(self, u) :

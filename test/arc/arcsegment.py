@@ -4,8 +4,10 @@ import math
 
 import geometrik.threed as g3d
 
+import goto.globe
+
 from goto.globe.blip import Blip
-from goto.globe.arc import ArcSegment
+from goto.globe.segment.arc import SegmentArc
 
 from goto.globe.plot import GlobePlotMpl
 
@@ -13,7 +15,7 @@ A = Blip(0.0, -45.0).as_vector
 B = Blip(0.0, 45.0).as_vector
 
 r = math.sqrt(3) / 2
-
+# r = 1000.0 / goto.globe.earth_radius
 
 M = Blip(0.0, -50.0).as_vector
 arc = ArcSegment(A, B, -r)

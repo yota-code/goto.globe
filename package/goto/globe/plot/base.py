@@ -48,8 +48,8 @@ class GlobePlot__base__() :
 	def add_segment(self, obj, n=128) :
 		import goto.globe.segment
 		p_lst = list()
-		# if isinstance(obj, goto.globe.segment.SegmentArc) :
-		# 	p_lst.append(obj.Cx)
+		if isinstance(obj, goto.globe.segment.SegmentArc) :
+			p_lst.append(obj.Cx)
 		for t in np.linspace(0.0, 1.0, n) :
 			p_lst.append(obj.position_at(t))
 		return p_lst

@@ -26,7 +26,6 @@ class Blip() :
 	def as_tuple(self) :
 		return self.lat, self.lon
 
-
 	def __repr__(self) :
 		return f'Blip({self.lat}, {self.lon})'
 
@@ -35,7 +34,6 @@ class Blip() :
 
 	@staticmethod
 	def from_vector(v) :
-
 		if not v._is_unit :
 			v = v.normalized()
 			

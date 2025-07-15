@@ -4,10 +4,13 @@ import math
 
 import goto.globe
 
-from goto.globe.blip import Blip
+from goto.globe.blip import Blip, gpoint
 from goto.globe.segment.line import SegmentLine
+from goto.globe.segment.arc import SegmentArc
 
-def turn_3pt(A:Blip, B:Blip, C:Blip, radius:float, debug=None) :
+from cc_pathlib import Path
+
+def turn_3pt(A:gpoint, B:gpoint, C:gpoint, radius:float, debug=None) :
 	"""
 	radius is expected in meters
 	"""
@@ -61,7 +64,7 @@ def turn_3pt(A:Blip, B:Blip, C:Blip, radius:float, debug=None) :
 		
 		print("q = ", q)
 		print("w = ", w)
-		with GlobePlot() as gpl :
+		with GlobePlot(debug) as gpl :
 			gpl.add_point(P, 'A', 'k')
 			gpl.add_point(R, 'B', 'k')
 			gpl.add_point(S, 'C', 'k')
@@ -70,7 +73,7 @@ def turn_3pt(A:Blip, B:Blip, C:Blip, radius:float, debug=None) :
 			gpl.add_point(V, 'V', 'cyan')
 			gpl.add_point(E, 'E', 'b')
 			gpl.add_point(F, 'F', 'b')
-			gpl.add_arc_from_center(E, F, V, 'magenta')
+			gpl.add_segment(SegmentArc(E, F, center=V, turnway=w), 'magenta')
 
 	return Blip.from_vector(E), Blip.from_vector(F), BEp, BFp, w
 
