@@ -33,6 +33,15 @@ class Blip() :
 		return f'Blip({self.lat}, {self.lon}) / {self.as_vector}'
 
 	@staticmethod
+	def from_gpoint(p) :
+		if isinstance(p, g3d.Vector) :
+			return Blip.from_vector(p)
+		elif isinstance(p, Blip) :
+			return p
+		else :
+			raise ValueError(f"{p} is not a valid point (p shall be a Blip or a Vector)")
+
+	@staticmethod
 	def from_vector(v) :
 		if not v._is_unit :
 			v = v.normalized()

@@ -34,7 +34,12 @@ class GlobePlot__base__() :
 	def add_line(self, A, B, n=128) :
 		Ax, Bx = A.as_vector, B.as_vector
 
-		Az = (Ax @ Bx).normalized()
+		try :
+			Az = (Ax @ Bx).normalized()
+		except :
+			print(A)
+			print(B)
+			raise
 		Ay = Az @ Ax
 
 		d = Ax.angle_to(Bx)

@@ -1,17 +1,11 @@
-#!/usr/bin/env zsh
+# compatible with bash and zsh
 
-export GOTO_source_DIR=$0:A:h
+export GOTO_source_DIR=$(dirname $(realpath ${BASH_SOURCE[0]:-$0}))
 
-function push_pythonpath() {
-	pth=$1:A
-	echo "+ ${pth}"
-	export PATH=${pth}/script:$PATH
-	export PYTHONPATH=${pth}/package:$PYTHONPATH
-}
+export PATH=${GOTO_source_DIR}/script:$PATH
+export PYTHONPATH=${GOTO_source_DIR}/package:$PYTHONPATH
 
-push_pythonpath ${GOTO_source_DIR}
-
-typeset -T PYTHONPATH pythonpath
-
-typeset -U pythonpath
-typeset -U path
+if type -t chell_path_cleanup &> /dev/null
+then
+	chell_path_cleanup
+fi
