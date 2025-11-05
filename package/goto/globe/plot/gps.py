@@ -43,10 +43,8 @@ class GeoJSON_LineString() :
 		"stroke-opacity": float,
 	}
 
-	def __init__(self, p_lst, name=None, prop=None) :
+	def __init__(self, p_lst, prop=None) :
 		self.prop = prop if prop is not None else dict()
-		if name is not None :
-			self.prop['name'] = name
 		self.p_lst = [Blip.from_gpoint(p) for p in p_lst]
 
 	def to_json(self) :
@@ -153,13 +151,10 @@ class GlobePlotGps(GlobePlot__base__) :
 	def add_line(self, A, B, color=None) :
 		self.line_lst.append( GlobePlot__base__.add_line(self, A, B) )
 
-	def add_polyline(self, W_lst, p_map=None, close=True) :
-		p_lst = [
-			W.as_vector for W in W_lst
-		]
+	def add_polyline(self, P_lst, prop=None, close=True) :
 		if close :
-			p_lst.append(p_lst[0])
-		self.line_lst.append((p_lst, p_map))
+			P_lst.append(P_lst[0])
+		self.feature_lst.append(GeoJSON_LineString(P_lst, prop))
 
 	def add_arc(self, A, B, radius=0.0) :
 		self.line_lst.append( GlobePlot__base__.add_arc(self, A, B, radius) )
