@@ -39,7 +39,7 @@ class GeoJSON_Point() :
 class GeoJSON_LineString() :
 	prop_check = {
 		"stroke": lambda x: re.compile(r'#[0-9A-Fa-f]{6}').match(x).group(0),
-		"stroke-width": lambda x: re.compile(r'#[0-9A-Fa-f]{6}').match(x).group(0),
+		"stroke-width": lambda x: re.compile(r'[0-9]+').match(x).group(0),
 		"stroke-opacity": float,
 	}
 
@@ -60,6 +60,43 @@ class GeoJSON_LineString() :
 		if self.prop :
 			m['properties'] = self.prop
 		return m
+
+class GeoJSON_Polygon() :
+	prop_check = {
+		"fill": lambda x: re.compile(r'#[0-9A-Fa-f]{6}').match(x).group(0),
+		"fill-opacity": float,
+		"stroke": lambda x: re.compile(r'#[0-9A-Fa-f]{6}').match(x).group(0),
+		"stroke-width": lambda x: re.compile(r'[0-9]+').match(x).group(0),
+		"stroke-opacity": float,
+	}
+
+	def __init__(self, r_lst, o_lst, prop=None) :
+		""" un polygone est constitué d'un périmètre extérieur (r_lst) et éventuellement de trous (o_lst) """
+
+		self.prop = prop if prop is not None else dict()
+
+		def prep_lst(a_lst) :
+			a_lst = [Blip.from_gpoint(a) for a in a_lst]
+			a_lst = [(a.lon, a.lat) for a in a_lst]
+			if a_lst[0] != a_lst[-1] :
+				a_lst.append(a_lst[0])
+			return a_lst
+
+		self.r_lst = prep_lst(r_lst)
+		self.o_lst = [prep_lst(o) for o in o_lst]
+		
+	def to_json(self) :
+		m = {
+			"type": "Feature",
+			"geometry" : {
+				"type": "Polygon",
+				"coordinates": [self.r_lst,] + self.o_lst
+			}
+		}
+		if self.prop :
+			m['properties'] = self.prop
+		return m
+
 
 class GlobePlotGps(GlobePlot__base__) :
 	""" this class is meant to help producing a GeoJSON file, as specified in https://datatracker.ietf.org/doc/html/rfc7946
@@ -150,6 +187,9 @@ class GlobePlotGps(GlobePlot__base__) :
 
 	def add_line(self, A, B, color=None) :
 		self.line_lst.append( GlobePlot__base__.add_line(self, A, B) )
+
+	def add_polygon(self, r_lst, * o_lst, prop=None) :
+		self.feature_lst.append(GeoJSON_Polygon(r_lst, o_lst, prop))
 
 	def add_polyline(self, P_lst, prop=None, close=True) :
 		if close :

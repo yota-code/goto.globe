@@ -18,6 +18,9 @@ class Blip() :
 		self._is_symbolic = self.is_symbolic
 		self.m = sympy if is_symbolic else math
 
+	def __eq__(self, other) :
+		return math.isclose(self.lat, other.lat) and math.isclose(self.lon, other.lon)
+
 	@property
 	def is_symbolic(self) :
 		return not all(isinstance(i, numbers.Number) for i in self.as_tuple)
