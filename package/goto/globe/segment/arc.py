@@ -40,7 +40,7 @@ class SegmentArc() :
 
 		self._init_compute(k, w)
 
-		print("effective radius:", self.radius)
+		# print("effective radius:", self.radius)
 
 	@property
 	def radius(self) :
@@ -58,7 +58,7 @@ class SegmentArc() :
 		"""
 		radius: the signed radius, in meters. Positive to the right
 		"""
-		print(f"SegmentArc({A}, {B}, radius={radius}, is_large_arc={is_large_arc})")
+		# print(f"SegmentArc({A}, {B}, radius={radius}, is_large_arc={is_large_arc})")
 
 		Ax, Bx = A.as_vector, B.as_vector
 
@@ -70,7 +70,7 @@ class SegmentArc() :
 		return k, w
 
 	def _init_with_center(self, A:gpoint, B:gpoint, center:gpoint, turnway:int) :
-		print(f"SegmentArc({A}, {B}, center={center}, turnway={turnway}")
+		# print(f"SegmentArc({A}, {B}, center={center}, turnway={turnway}")
 		Ax, Bx, Cx = A.as_vector, B.as_vector, center.as_vector
 
 		self.angle = Ax.angle_to(Bx)

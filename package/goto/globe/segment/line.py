@@ -17,7 +17,7 @@ class SegmentLine() :
 
 		self.radius = 0.0
 
-		print(f"SegmentLine({A}, {B})")
+		# print(f"SegmentLine({A}, {B})")
 
 		self.angle = self.Ax.angle_to(self.Bx)
 

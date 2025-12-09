@@ -181,14 +181,17 @@ class GlobePlotGps(GlobePlot__base__) :
 			"features": point_lst + line_lst
 		}, verbose=True)
 
+
+
 	def add_point(self, Ax, name=None, prop=None) :
 		# self.point_map[name] = Ax
 		self.feature_lst.append(GeoJSON_Point(Ax, name, prop))
 
-	def add_line(self, A, B, color=None) :
-		self.line_lst.append( GlobePlot__base__.add_line(self, A, B) )
+	# def add_line(self, A, B, color=None) :
+	# 	self.line_lst.append( GlobePlot__base__.add_line(self, A, B) )
 
 	def add_polygon(self, r_lst, * o_lst, prop=None) :
+		# o_lst décrit d'éventuels trous
 		self.feature_lst.append(GeoJSON_Polygon(r_lst, o_lst, prop))
 
 	def add_polyline(self, P_lst, prop=None, close=True) :
@@ -196,15 +199,19 @@ class GlobePlotGps(GlobePlot__base__) :
 			P_lst.append(P_lst[0])
 		self.feature_lst.append(GeoJSON_LineString(P_lst, prop))
 
-	def add_arc(self, A, B, radius=0.0) :
-		self.line_lst.append( GlobePlot__base__.add_arc(self, A, B, radius) )
+	def add_segment(self, s_obj, step=50, prop=None) :
+		p_lst = [s_obj.position_at(i / step) for i in range(step+1)]
+		self.feature_lst.append(GeoJSON_LineString(p_lst, prop))
+		
+		# self.line_lst.append( GlobePlot__base__.add_segment(self, obj, 2 if obj.radius == 0.0 else 128) )
 
-	def add_circle(self, Cx, Px) :
-		self.line_lst.append( GlobePlot__base__.add_circle(self, Cx, Px) )
+	# def add_arc(self, A, B, radius=0.0) :
+	# 	self.line_lst.append( GlobePlot__base__.add_arc(self, A, B, radius) )
 
-	def add_segment(self, obj, color=None) :
-		self.line_lst.append( GlobePlot__base__.add_segment(self, obj, 2 if obj.radius == 0.0 else 128) )
+	# def add_circle(self, Cx, Px) :
+	# 	self.line_lst.append( GlobePlot__base__.add_circle(self, Cx, Px) )
 
-	def add_border(self, u) :
-		self.line_lst.append( GlobePlot__base__.add_border(self, u) )
+
+	# def add_border(self, u) :
+	# 	self.line_lst.append( GlobePlot__base__.add_border(self, u) )
 
