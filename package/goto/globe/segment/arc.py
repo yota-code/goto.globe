@@ -42,6 +42,9 @@ class SegmentArc() :
 
 		# print("effective radius:", self.radius)
 
+	def __repr__(self) :
+		return f"SegmentArc({goto.globe.Blip.from_vector(self.Ax)}, {goto.globe.Blip.from_vector(self.Bx)}, {self.angle})"
+
 	@property
 	def radius(self) :
 		return self.aperture * goto.globe.earth_radius
@@ -70,7 +73,11 @@ class SegmentArc() :
 		return k, w
 
 	def _init_with_center(self, A:gpoint, B:gpoint, center:gpoint, turnway:int) :
-		# print(f"SegmentArc({A}, {B}, center={center}, turnway={turnway}")
+		"""
+		turnway doit être égal à 1 pour un virage à droite, -1 pour à gauche et 
+		0 pour une détection automatique avec un petit arc de cercle
+		"""
+
 		Ax, Bx, Cx = A.as_vector, B.as_vector, center.as_vector
 
 		self.angle = Ax.angle_to(Bx)
@@ -80,7 +87,14 @@ class SegmentArc() :
 
 		self.aperture = self._bounded_aperture(self.angle, radius)
 
-		w = 1.0 if 0 < turnway else -1.0
+		if turnway == 1 or turnway == -1 :
+			w = float(turnway)
+		else :
+			Qx, Qy, Qz = self.Q_base
+			w = math.copysign(1.0, Qy * Cx)
+
+		print(f"SegmentArc({A}, {B}, center={center}, turnway={int(w)}")
+		
 		k = w * math.copysign(1.0, Cx * self.Q_base[1])
 
 		return k, w
