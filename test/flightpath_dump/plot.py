@@ -55,7 +55,7 @@ with GlobePlotGps(pth.with_suffix('.map.json')) as plt :
 			p = None
 			if wpt["line_type"] == line_type.ARC :
 				C = goto.globe.Blip(wpt["arc_lat"], wpt["arc_lon"])
-				s = goto.globe.segment.SegmentArc(A, B, center=C)
+				s = goto.globe.segment.SegmentArc(A, B, center=C, turnway=wpt["arc_dir"])
 				p = {'stroke': "#9933FF"}
 			elif wpt["line_type"] == line_type.COURSE :
 				p = {'stroke': "#FF0000"}
@@ -69,4 +69,5 @@ with GlobePlotGps(pth.with_suffix('.map.json')) as plt :
 				raise ValueError(f"unknown line_type = {wpt["line_type"]}")
 			if s is not None :
 				plt.add_segment(s, prop=p)
+			print(n, str(s))
 		A = B
