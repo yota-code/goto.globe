@@ -40,8 +40,8 @@ class SegmentLine() :
 
 	def compute_sta(self, M) :
 		self.Mx = M.as_vector
-		self.Px = self.Mx.project(self.Ay).normalized()
-		self.Pz = self.Px @ self.Ay
+		self.Px = self.Mx.project_normal(self.Ay).normalized()
+		self.Pz = (self.Px @ self.Ay)
 		self.dev_lat = self.Px.angle_to(self.Mx, self.Pz)
 		Fe, Fn = self.Px.frame(g3d.v_north)
 		self.Fe, self.Fn = Fe, Fn

@@ -49,7 +49,7 @@ with GlobePlotGps(pth.with_suffix('.map.json')) as plt :
 			try :
 				s = goto.globe.segment.SegmentLine(A, B)
 			except :
-				print("points confondus")
+				print(f"points confondus en {n}")
 				s = None
 
 			p = None

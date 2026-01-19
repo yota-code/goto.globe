@@ -181,8 +181,6 @@ class GlobePlotGps(GlobePlot__base__) :
 			"features": point_lst + line_lst
 		}, verbose=True)
 
-
-
 	def add_point(self, Ax, name=None, prop=None) :
 		# self.point_map[name] = Ax
 		self.feature_lst.append(GeoJSON_Point(Ax, name, prop))
